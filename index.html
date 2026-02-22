@@ -1637,9 +1637,9 @@
 
       // --- HUD (adapté mobile/desktop) ---
       const mob = scene.isTouchDevice;
-      const barX = mob ? 28 : 36;
-      const barBottom = GAME_HEIGHT - (mob ? 50 : 70);
-      const barTop = barBottom - GAME_HEIGHT * (mob ? 0.38 : 0.5);
+      const barX = mob ? 56 : 36;
+      const barBottom = GAME_HEIGHT - (mob ? 84 : 70);
+      const barTop = barBottom - GAME_HEIGHT * (mob ? 0.28 : 0.5);
       const barHeight = barBottom - barTop;
       const barWidth = mob ? 16 : 22;
 
@@ -1649,10 +1649,10 @@
         .setOrigin(0.5).setStrokeStyle(2, 0x22c55e, 0.8).setScrollFactor(0).setDepth(800);
       scene.energyBarFill = this.add.rectangle(barX, barBottom-2, barWidth-4, 0, 0x22c55e)
         .setOrigin(0.5, 1).setScrollFactor(0).setDepth(801);
-      scene.energyBolt = this.add.text(barX, barTop - (mob ? 18 : 28), '⚡', {
+      scene.energyBolt = this.add.text(barX, barTop - (mob ? 16 : 28), '⚡', {
         fontSize: mob ? '28px' : '40px', fontFamily: 'Segoe UI Emoji'
       }).setOrigin(0.5).setScrollFactor(0).setDepth(800);
-      scene.energyPercent = this.add.text(barX, barBottom + (mob ? 18 : 28), '0', {
+      scene.energyPercent = this.add.text(barX, barBottom + (mob ? 16 : 28), '0', {
         fontSize: mob ? '28px' : '42px', fontStyle: 'bold', color: '#ff4b4b', fontFamily: 'Arial', resolution: 2
       }).setOrigin(0.5).setScrollFactor(0).setDepth(800);
       scene._barTop = barTop; scene._barBottom = barBottom;
@@ -1756,11 +1756,11 @@
       }});
 
       const kingFontSize = mob ? '24px' : '36px';
-      const kingX = GAME_WIDTH - (mob ? 14 : 20);
-      scene.targetLabel = this.add.text(kingX, mob ? 8 : 14, 'King', {
+      const kingX = GAME_WIDTH - (mob ? 10 : 20);
+      scene.targetLabel = this.add.text(kingX, mob ? 4 : 14, 'King', {
         fontSize: kingFontSize, fontStyle: 'bold', color: '#e5e7eb', fontFamily: 'Arial', resolution: 2
       }).setOrigin(1,0).setScrollFactor(0).setDepth(802);
-      scene.targetName = this.add.text(kingX, mob ? 32 : 52, '—', {
+      scene.targetName = this.add.text(kingX, mob ? 24 : 52, '—', {
         fontSize: kingFontSize, fontStyle: 'bold', color: '#39ff14', fontFamily: 'Arial', resolution: 2
       }).setOrigin(1,0).setScrollFactor(0).setDepth(802);
       scene._kingX = kingX;
@@ -1821,6 +1821,11 @@
         fontSize: '280px', fontStyle: 'bold', color: '#ffd700',
         fontFamily: 'Arial', stroke: '#000000', strokeThickness: 6, resolution: 2
       }).setOrigin(0.5).setDepth(999).setScrollFactor(0).setAlpha(0);
+      scene.waitingTitle = waitingTitle;
+      scene.waitingCount = waitingCount;
+      scene.countdownNum = countdownNum;
+      scene._countdownCx = cx;
+      scene._countdownCy = cy;
 
       const launchCountdown = (baseDelay) => {
         const showNum = (val, delay) => {
@@ -1862,7 +1867,10 @@
         this.time.delayedCall(baseDelay + 4100, () => {
           scene.tweens.add({
             targets: countdownNum, alpha: 0, duration: 300, ease: 'Quad.easeIn',
-            onComplete: () => countdownNum.destroy()
+            onComplete: () => {
+              countdownNum.destroy();
+              scene.countdownNum = null;
+            }
           });
           scene.gameStarted = true;
         });
@@ -1879,7 +1887,12 @@
         const remainingSlots = Math.max(0, fakeTargetPlayers - fakeConnected);
         if (remainingSlots <= 0) {
           scene.tweens.add({ targets: [waitingTitle, waitingCount], alpha: 0, duration: 220, ease: 'Quad.easeIn',
-            onComplete: () => { waitingTitle.destroy(); waitingCount.destroy(); } });
+            onComplete: () => {
+              waitingTitle.destroy();
+              waitingCount.destroy();
+              scene.waitingTitle = null;
+              scene.waitingCount = null;
+            } });
           launchCountdown(120);
           return;
         }
@@ -1901,6 +1914,25 @@
       if (!scene.gameStarted) {
         scene.player.body.setVelocity(0,0);
         scene.bots.forEach(b => b.circle.body.setVelocity(0,0));
+        // Keep fake matchmaking/countdown perfectly centered on mobile while camera zoom changes.
+        if (scene.isTouchDevice) {
+          const camMain = scene.cameras.main;
+          const z = camMain.zoom || 1;
+          const invZ = 1 / z;
+          const cw = GAME_WIDTH / 2;
+          const ch = GAME_HEIGHT / 2;
+          const fixHud = (el, sx, sy) => {
+            if (!el || !el.active) return;
+            el.x = (sx - cw) * invZ + cw;
+            el.y = (sy - ch) * invZ + ch;
+            el.setScale(invZ);
+          };
+          const cx = scene._countdownCx || GAME_WIDTH / 2;
+          const cy = scene._countdownCy || GAME_HEIGHT / 2;
+          fixHud(scene.waitingTitle, cx, cy - 40);
+          fixHud(scene.waitingCount, cx, cy + 18);
+          fixHud(scene.countdownNum, cx, cy);
+        }
         return;
       }
       if (scene.timeLeft <= 0) {
@@ -2229,15 +2261,15 @@
       const z = camMain.zoom||1, invZ = 1/z;
       const cw = GAME_WIDTH/2, ch = GAME_HEIGHT/2;
       const _mob = scene.isTouchDevice;
-      const _barX = _mob ? 28 : 36;
+      const _barX = _mob ? 56 : 36;
       const _timerX = _mob ? 60 : 90;
       const _timerY = _mob ? 34 : 50;
       const _legY = _mob ? 64 : 95;
-      const _kingX = scene._kingX || (GAME_WIDTH - (_mob ? 14 : 20));
-      const _kingLabelY = _mob ? 8 : 14;
-      const _kingNameY = _mob ? 32 : 52;
-      const _boltOff = _mob ? 18 : 28;
-      const _pctOff = _mob ? 18 : 28;
+      const _kingX = scene._kingX || (GAME_WIDTH - (_mob ? 10 : 20));
+      const _kingLabelY = _mob ? 4 : 14;
+      const _kingNameY = _mob ? 24 : 52;
+      const _boltOff = _mob ? 16 : 28;
+      const _pctOff = _mob ? 16 : 28;
       function fixHud(el,sx,sy) { el.x=(sx-cw)*invZ+cw; el.y=(sy-ch)*invZ+ch; el.setScale(invZ); }
       fixHud(scene.timerText, _timerX, _timerY);
       fixHud(scene.legendaryHud, GAME_WIDTH / 2, _legY);
