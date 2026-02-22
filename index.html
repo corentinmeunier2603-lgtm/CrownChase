@@ -282,6 +282,61 @@
     .infos-row:last-child { border-bottom: none; }
     .infos-k { color: #8fa2c2; }
     .infos-v { color: #ffffff; font-weight: bold; }
+    @media (max-width: 1024px) and (orientation: landscape) {
+      #menu-screen {
+        justify-content: flex-start;
+        padding: 10px 10px 18px;
+      }
+      #menu-screen .title {
+        font-size: 34px;
+        margin-top: 6px;
+        margin-bottom: 4px;
+        letter-spacing: 1px;
+      }
+      #menu-screen .subtitle {
+        font-size: 14px;
+        margin-bottom: 16px;
+      }
+      #menu-screen .mode-cards {
+        width: 100%;
+        gap: 10px;
+        margin-bottom: 14px;
+        justify-content: center;
+      }
+      .mode-card {
+        width: min(44vw, 250px);
+        padding: 16px 14px;
+        border-radius: 14px;
+      }
+      .mode-card .mode-icon { font-size: 30px; margin-bottom: 8px; }
+      .mode-card .mode-title { font-size: 20px; margin-bottom: 6px; }
+      .mode-card .mode-desc { font-size: 12px; line-height: 1.35; }
+      .menu-input { width: min(44vw, 250px); font-size: 16px; padding: 11px 12px; }
+      .menu-btn { width: min(44vw, 250px); font-size: 17px; padding: 12px; }
+      .how-to-section { margin-top: 18px; padding-top: 16px; }
+      .how-to-label { font-size: 12px; letter-spacing: 2px; margin-bottom: 10px; }
+      .how-to-play { flex-wrap: wrap; justify-content: center; gap: 8px; padding: 0 6px; }
+      .step-card { width: 40vw; max-width: 170px; padding: 12px 10px; }
+      .step-icon { font-size: 24px; margin-bottom: 6px; }
+      .step-title { font-size: 12px; margin-bottom: 4px; }
+      .step-desc { font-size: 10.5px; line-height: 1.3; }
+      .step-connector { display: none; }
+      #lang-btn, #infos-btn {
+        top: 10px;
+        padding: 6px 10px;
+        font-size: 12px;
+      }
+      #infos-panel {
+        top: 46px;
+        left: 10px;
+        width: min(320px, 68vw);
+        font-size: 12px;
+      }
+      #lang-dropdown {
+        top: 40px;
+        min-width: 150px;
+      }
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.min.js"></script>
 </head>
@@ -474,11 +529,12 @@
       ctrlSpace:       { fr: 'ESPACE', en: 'SPACE', es: 'ESPACIO', zh: '空格', it: 'SPAZIO' },
       ctrlTouchHold:   { fr: 'MAINTENIR', en: 'HOLD', es: 'MANTENER', zh: '长按', it: 'TIENI' },
       ctrlBoost:       { fr: '<strong>Boost</strong><br>Accélère en consommant ton énergie', en: '<strong>Boost</strong><br>Speed up by using your energy', es: '<strong>Boost</strong><br>Acelera usando tu energía', zh: '<strong>加速</strong><br>消耗能量来加速', it: '<strong>Boost</strong><br>Accelera consumando la tua energia' },
-      ctrlBoostMobile: { fr: '<strong>Boost</strong><br>Maintiens le bouton BOOST (bas gauche)', en: '<strong>Boost</strong><br>Hold the BOOST button (bottom-left)', es: '<strong>Boost</strong><br>Mantén el botón BOOST (abajo a la izquierda)', zh: '<strong>加速</strong><br>按住BOOST按钮（左下）', it: '<strong>Boost</strong><br>Tieni premuto il pulsante BOOST (in basso a sinistra)' },
+      ctrlMoveTouch:   { fr: 'JOYSTICK 360', en: 'JOYSTICK 360', es: 'JOYSTICK 360', zh: '摇杆360', it: 'JOYSTICK 360' },
+      ctrlMoveMobile:  { fr: '<strong>Direction + Boost</strong><br>Joystick à droite pour bouger, bouton BOOST à gauche', en: '<strong>Move + Boost</strong><br>Right joystick to move, BOOST button on the left', es: '<strong>Mover + Boost</strong><br>Joystick a la derecha para mover, botón BOOST a la izquierda', zh: '<strong>移动+加速</strong><br>右侧摇杆移动，左侧BOOST按钮', it: '<strong>Movimento + Boost</strong><br>Joystick a destra per muoverti, pulsante BOOST a sinistra' },
       ctrlClick:       { fr: 'CLIC', en: 'CLICK', es: 'CLIC', zh: '点击', it: 'CLIC' },
-      ctrlTap:         { fr: 'TAP', en: 'TAP', es: 'TOQUE', zh: '点击', it: 'TOCCO' },
+      ctrlTap:         { fr: 'DOUBLE TAP', en: 'DOUBLE TAP', es: 'DOBLE TOQUE', zh: '双击', it: 'DOPPIO TAP' },
       ctrlPowerup:     { fr: '<strong>Utiliser power-up</strong><br>Active le pouvoir en bas à droite', en: '<strong>Use power-up</strong><br>Activate the ability at bottom-right', es: '<strong>Usar power-up</strong><br>Activa el poder abajo a la derecha', zh: '<strong>使用道具</strong><br>激活右下角的能力', it: '<strong>Usa power-up</strong><br>Attiva il potere in basso a destra' },
-      ctrlPowerupMobile:{ fr: '<strong>Utiliser power-up</strong><br>Tape l’icône en bas à droite', en: '<strong>Use power-up</strong><br>Tap the icon at bottom-right', es: '<strong>Usar power-up</strong><br>Toca el icono abajo a la derecha', zh: '<strong>使用道具</strong><br>点击右下角图标', it: '<strong>Usa power-up</strong><br>Tocca l\'icona in basso a destra' },
+      ctrlPowerupMobile:{ fr: '<strong>Utiliser power-up</strong><br>Double tape sur l’écran', en: '<strong>Use power-up</strong><br>Double tap on screen', es: '<strong>Usar power-up</strong><br>Doble toque en pantalla', zh: '<strong>使用道具</strong><br>双击屏幕', it: '<strong>Usa power-up</strong><br>Doppio tap sullo schermo' },
       ctrlDivider:     { fr: '— Power-ups (caisses mystères) —', en: '— Power-ups (mystery boxes) —', es: '— Power-ups (cajas misteriosas) —', zh: '— 道具（神秘箱）—', it: '— Power-up (casse misteriose) —' },
       puTurbo:         { fr: 'Dash ultra-rapide instantané', en: 'Instant ultra-fast dash', es: 'Dash ultra-rápido instantáneo', zh: '瞬间极速冲刺', it: 'Scatto ultra-rapido istantaneo' },
       puSpeed:         { fr: 'Vitesse x3 pendant quelques sec.', en: 'Speed x3 for a few seconds', es: 'Velocidad x3 durante unos seg.', zh: '速度x3持续几秒', it: 'Velocità x3 per qualche sec.' },
@@ -546,9 +602,9 @@
       if (ctrlBtn) ctrlBtn.lastChild.textContent = ' ' + t('controlsBtn');
       const touchMode = isTouchControlMode();
       const boostKey = document.getElementById('ctrl-boost-key');
-      if (boostKey) boostKey.textContent = touchMode ? t('ctrlTouchHold') : t('ctrlSpace');
+      if (boostKey) boostKey.textContent = touchMode ? t('ctrlMoveTouch') : t('ctrlSpace');
       const ctrlLabels = document.querySelectorAll('#controls-panel .ctrl-label');
-      if (ctrlLabels[0]) ctrlLabels[0].innerHTML = touchMode ? t('ctrlBoostMobile') : t('ctrlBoost');
+      if (ctrlLabels[0]) ctrlLabels[0].innerHTML = touchMode ? t('ctrlMoveMobile') : t('ctrlBoost');
       if (ctrlLabels[1]) ctrlLabels[1].innerHTML = touchMode ? t('ctrlPowerupMobile') : t('ctrlPowerup');
       const clickSpan = document.getElementById('ctrl-powerup-key-text');
       if (clickSpan) clickSpan.textContent = touchMode ? t('ctrlTap') : t('ctrlClick');
@@ -1361,27 +1417,115 @@
       // --- Contrôles ---
       scene.pointer = this.input.activePointer;
       scene.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-      scene.isTouchDevice = !!(this.sys.game.device && this.sys.game.device.input && this.sys.game.device.input.touch);
+      scene.isTouchDevice = isTouchControlMode();
       scene.boostTouchActive = false;
       scene.boostTouchPointerId = null;
-      // Allow multitouch so player can move and boost simultaneously on mobile.
-      this.input.addPointer(2);
+      scene.joystickPointerId = null;
+      scene.joyVecX = 0;
+      scene.joyVecY = 0;
+      scene.lastMobileTapTime = 0;
+      scene._boostHudX = 110;
+      scene._boostHudY = GAME_HEIGHT - 68;
+      scene._joyHudX = GAME_WIDTH - 110;
+      scene._joyHudY = GAME_HEIGHT - 86;
+      // Allow multi-touch: one finger joystick, one boost, one extra.
+      this.input.addPointer(3);
+
+      const updateJoystickFromPointer = (pointer) => {
+        if (!scene.joyBase || !pointer) return;
+        const dx = pointer.x - scene.joyBase.x;
+        const dy = pointer.y - scene.joyBase.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const maxR = 42 * (scene.joyBase.scaleX || 1);
+        if (dist <= 0.0001) {
+          scene.joyVecX = 0;
+          scene.joyVecY = 0;
+          scene.joyKnob.x = scene.joyBase.x;
+          scene.joyKnob.y = scene.joyBase.y;
+          return;
+        }
+        const clamped = Math.min(dist, maxR);
+        const nx = dx / dist;
+        const ny = dy / dist;
+        scene.joyVecX = nx * (clamped / maxR);
+        scene.joyVecY = ny * (clamped / maxR);
+        scene.joyKnob.x = scene.joyBase.x + nx * clamped;
+        scene.joyKnob.y = scene.joyBase.y + ny * clamped;
+      };
+      const releaseTouchBoost = (pointer) => {
+        if (!pointer || scene.boostTouchPointerId === null || pointer.id === scene.boostTouchPointerId) {
+          scene.boostTouchActive = false;
+          scene.boostTouchPointerId = null;
+        }
+      };
+      const releaseJoystick = (pointer) => {
+        if (!pointer || scene.joystickPointerId === null || pointer.id === scene.joystickPointerId) {
+          scene.joystickPointerId = null;
+          scene.joyVecX = 0;
+          scene.joyVecY = 0;
+          if (scene.joyBase && scene.joyKnob) {
+            scene.joyKnob.x = scene.joyBase.x;
+            scene.joyKnob.y = scene.joyBase.y;
+          }
+        }
+      };
 
       this.input.on('pointerdown', function (pointer) {
         const isTouchPointer = pointer.pointerType === 'touch';
         if (!isTouchPointer && pointer.button !== 0) return;
+        if (!isTouchPointer) {
+          // PC: click anywhere to use stored power-up.
+          if (scene._rouletteRunning) return;
+          if (scene.playerStoredPowerUp) {
+            const effect = scene.playerStoredPowerUp;
+            scene.playerStoredPowerUp = null;
+            activatePowerUp(scene, 'player', effect);
+          }
+          return;
+        }
+        if (scene.boostBtn) {
+          const bdx = pointer.x - scene.boostBtn.x;
+          const bdy = pointer.y - scene.boostBtn.y;
+          const bDist = Math.sqrt(bdx * bdx + bdy * bdy);
+          if (bDist <= 56 * (scene.boostBtn.scaleX || 1)) {
+            scene.boostTouchActive = true;
+            scene.boostTouchPointerId = pointer.id;
+            return;
+          }
+        }
+        if (scene.joyBase && pointer.x > GAME_WIDTH * 0.45) {
+          const jdx = pointer.x - scene.joyBase.x;
+          const jdy = pointer.y - scene.joyBase.y;
+          const jDist = Math.sqrt(jdx * jdx + jdy * jdy);
+          if (jDist <= 82 * (scene.joyBase.scaleX || 1)) {
+            scene.joystickPointerId = pointer.id;
+            updateJoystickFromPointer(pointer);
+            return;
+          }
+        }
         if (scene._rouletteRunning) return;
-        const half = 32 * (scene.powerUpBox.scaleX || 1);
-        const insidePowerUpHud = (
-          Math.abs(pointer.x - scene.powerUpBox.x) <= half &&
-          Math.abs(pointer.y - scene.powerUpBox.y) <= half
-        );
-        if (!insidePowerUpHud) return;
-        if (scene.playerStoredPowerUp) {
+        const now = scene.time.now || Date.now();
+        const isDoubleTap = now - scene.lastMobileTapTime < 300;
+        scene.lastMobileTapTime = now;
+        if (isDoubleTap && scene.playerStoredPowerUp) {
           const effect = scene.playerStoredPowerUp;
           scene.playerStoredPowerUp = null;
           activatePowerUp(scene, 'player', effect);
+          scene.lastMobileTapTime = 0;
         }
+      });
+      this.input.on('pointermove', function (pointer) {
+        if (scene.joystickPointerId !== null && pointer.id === scene.joystickPointerId) {
+          updateJoystickFromPointer(pointer);
+        }
+      });
+      this.input.on('pointerup', function (pointer) {
+        releaseTouchBoost(pointer);
+        releaseJoystick(pointer);
+      });
+      this.input.on('pointerupoutside', function (pointer) {
+        releaseTouchBoost(pointer);
+        releaseJoystick(pointer);
       });
 
       // --- HUD ---
@@ -1417,27 +1561,21 @@
       }).setOrigin(0.5).setScrollFactor(0).setDepth(803);
       scene._puX = puX; scene._puY = puY;
       scene.playerPowerUpUntil = 0;
-      scene.boostBtn = this.add.circle(110, GAME_HEIGHT - 68, 46, 0x22c55e, 0.2)
-        .setStrokeStyle(3, 0x39ff14, 0.9).setScrollFactor(0).setDepth(804);
-      scene.boostBtnLabel = this.add.text(110, GAME_HEIGHT - 68, 'BOOST', {
-        fontSize: '18px', fontStyle: 'bold', color: '#d9ffd9', fontFamily: 'Arial', resolution: 2
-      }).setOrigin(0.5).setScrollFactor(0).setDepth(805);
-      scene.boostBtnHit = this.add.circle(110, GAME_HEIGHT - 68, 56, 0x000000, 0.001)
-        .setScrollFactor(0).setDepth(806).setInteractive({ useHandCursor: true });
-      const releaseTouchBoost = (pointer) => {
-        if (!pointer || scene.boostTouchPointerId === null || pointer.id === scene.boostTouchPointerId) {
-          scene.boostTouchActive = false;
-          scene.boostTouchPointerId = null;
-        }
-      };
-      scene.boostBtnHit.on('pointerdown', (pointer) => {
-        scene.boostTouchActive = true;
-        scene.boostTouchPointerId = pointer.id;
-      });
-      scene.boostBtnHit.on('pointerup', releaseTouchBoost);
-      scene.boostBtnHit.on('pointerout', releaseTouchBoost);
-      scene.boostBtnHit.on('pointerupoutside', releaseTouchBoost);
-      this.input.on('pointerup', releaseTouchBoost);
+      scene.boostBtn = null;
+      scene.boostBtnLabel = null;
+      scene.joyBase = null;
+      scene.joyKnob = null;
+      if (scene.isTouchDevice) {
+        scene.boostBtn = this.add.circle(scene._boostHudX, scene._boostHudY, 46, 0x22c55e, 0.2)
+          .setStrokeStyle(3, 0x39ff14, 0.9).setScrollFactor(0).setDepth(804);
+        scene.boostBtnLabel = this.add.text(scene._boostHudX, scene._boostHudY, 'BOOST', {
+          fontSize: '18px', fontStyle: 'bold', color: '#d9ffd9', fontFamily: 'Arial', resolution: 2
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(805);
+        scene.joyBase = this.add.circle(scene._joyHudX, scene._joyHudY, 54, 0x60a5fa, 0.22)
+          .setStrokeStyle(3, 0x93c5fd, 0.9).setScrollFactor(0).setDepth(804);
+        scene.joyKnob = this.add.circle(scene._joyHudX, scene._joyHudY, 24, 0xbfdbfe, 0.92)
+          .setStrokeStyle(2, 0xffffff, 0.85).setScrollFactor(0).setDepth(805);
+      }
 
       scene.timeLeft = TIMER_START;
       scene.timerText = this.add.text(90, 50, scene.timeLeft.toString(), {
@@ -1715,7 +1853,7 @@
       resolveCrownConflicts(scene);
 
       // --- Boost joueur ---
-      scene.boostActive = (scene.spaceKey.isDown || scene.boostTouchActive) && scene.energy > 0;
+      scene.boostActive = (scene.spaceKey.isDown || (scene.isTouchDevice && scene.boostTouchActive)) && scene.energy > 0;
       if (scene.boostActive) {
         const drainPerSec = ENERGY_MAX / (BOOST_DURATION / 1000);
         scene.energy -= drainPerSec * dt;
@@ -1974,9 +2112,16 @@
       fixHud(scene.energyPercent, 48, scene._barBottom+28);
       fixHud(scene.powerUpBox, scene._puX, scene._puY);
       fixHud(scene.powerUpIcon, scene._puX, scene._puY);
-      fixHud(scene.boostBtn, 110, GAME_HEIGHT - 68);
-      fixHud(scene.boostBtnLabel, 110, GAME_HEIGHT - 68);
-      fixHud(scene.boostBtnHit, 110, GAME_HEIGHT - 68);
+      if (scene.boostBtn) fixHud(scene.boostBtn, scene._boostHudX, scene._boostHudY);
+      if (scene.boostBtnLabel) fixHud(scene.boostBtnLabel, scene._boostHudX, scene._boostHudY);
+      if (scene.joyBase) fixHud(scene.joyBase, scene._joyHudX, scene._joyHudY);
+      if (scene.joyKnob) {
+        const joyKnobScreenX = scene.joyBase.x + scene.joyVecX * 42 * (scene.joyBase.scaleX || 1);
+        const joyKnobScreenY = scene.joyBase.y + scene.joyVecY * 42 * (scene.joyBase.scaleX || 1);
+        scene.joyKnob.x = joyKnobScreenX;
+        scene.joyKnob.y = joyKnobScreenY;
+        scene.joyKnob.setScale(invZ);
+      }
       fixHud(scene.lbBg, GAME_WIDTH - 20 - 100, scene._lbY + 120);
       fixHud(scene.lbTitle, GAME_WIDTH - 20 - 100, scene._lbY - 16);
       for (let li = 0; li < scene.lbRows.length; li++) {
@@ -2006,20 +2151,18 @@
 
       // --- Mouvement joueur ---
       let vx=0, vy=0;
-      let movePointer = scene.pointer;
       if (scene.isTouchDevice) {
-        const touchPointers = scene.input.manager && scene.input.manager.pointers ? scene.input.manager.pointers : [];
-        movePointer = touchPointers.find(p => p.isDown && p.id !== scene.boostTouchPointerId) || null;
-      }
-      if (movePointer && typeof movePointer.x==='number' && typeof movePointer.y==='number') {
-        const camZoom = camMain.zoom||1;
-        const dxS = (movePointer.x-GAME_WIDTH/2)/camZoom;
-        const dyS = (movePointer.y-GAME_HEIGHT/2)/camZoom;
-        const distS = Math.sqrt(dxS*dxS+dyS*dyS);
-        if (distS>0.1) { scene.playerMoveDirX=dxS/distS; scene.playerMoveDirY=dyS/distS; }
+        const mag = Math.sqrt(scene.joyVecX * scene.joyVecX + scene.joyVecY * scene.joyVecY);
+        if (mag > 0.02) {
+          scene.playerMoveDirX = scene.joyVecX / mag;
+          scene.playerMoveDirY = scene.joyVecY / mag;
+        } else {
+          scene.playerMoveDirX = 0;
+          scene.playerMoveDirY = 0;
+        }
         vx = scene.playerMoveDirX * playerBaseSpeed * speedMult;
         vy = scene.playerMoveDirY * playerBaseSpeed * speedMult;
-      } else if (!scene.isTouchDevice) {
+      } else {
         const screenX = scene.pointer.x, screenY = scene.pointer.y;
         if (typeof screenX==='number' && typeof screenY==='number') {
           const camZoom = camMain.zoom||1;
