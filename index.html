@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>Crown Chase Prototype</title>
   <style>
     :root {
@@ -1106,12 +1109,20 @@
       bgMusic.play().catch(() => {
         // Ignore autoplay/file access errors and continue game startup.
       });
+      GAME_WIDTH = window.innerWidth || 960;
+      GAME_HEIGHT = window.innerHeight || 540;
+      config.width = GAME_WIDTH;
+      config.height = GAME_HEIGHT;
       game = new Phaser.Game(config);
-      window.addEventListener('resize', () => game.scale.resize(window.innerWidth, window.innerHeight));
+      window.addEventListener('resize', () => {
+        GAME_WIDTH = window.innerWidth || 960;
+        GAME_HEIGHT = window.innerHeight || 540;
+        game.scale.resize(GAME_WIDTH, GAME_HEIGHT);
+      });
     }
 
-    const GAME_WIDTH = window.innerWidth || 960;
-    const GAME_HEIGHT = window.innerHeight || 540;
+    let GAME_WIDTH = window.innerWidth || 960;
+    let GAME_HEIGHT = window.innerHeight || 540;
     const WORLD_WIDTH = 7000;
     const WORLD_HEIGHT = 7000;
 
@@ -1866,22 +1877,22 @@
 
         // Cleanup & start
         this.time.delayedCall(baseDelay + 4100, () => {
-          scene.tweens.add({
-            targets: countdownNum, alpha: 0, duration: 300, ease: 'Quad.easeIn',
-            onComplete: () => {
-              countdownNum.destroy();
-              scene.countdownNum = null;
-            }
-          });
-          // Safety cleanup in case another tween chain re-shows GO.
-          this.time.delayedCall(380, () => {
-            if (scene.countdownNum && scene.countdownNum.active) {
-              scene.countdownNum.destroy();
-              scene.countdownNum = null;
-            }
-          });
+          if (countdownNum && countdownNum.active) {
+            scene.tweens.killTweensOf(countdownNum);
+            countdownNum.setAlpha(0);
+            countdownNum.destroy();
+          }
+          scene.countdownNum = null;
           scene.gameStarted = true;
         });
+        // Hard safety: native setTimeout to guarantee GO removal regardless of tween state.
+        const sceneRef = this;
+        setTimeout(() => {
+          if (sceneRef.countdownNum && sceneRef.countdownNum.active) {
+            sceneRef.countdownNum.destroy();
+            sceneRef.countdownNum = null;
+          }
+        }, baseDelay + 5000);
       };
 
       let fakeLobbyDurationMs = Phaser.Math.Between(5000, 8000);
@@ -1925,8 +1936,7 @@
       if (!scene.gameStarted) {
         scene.player.body.setVelocity(0,0);
         scene.bots.forEach(b => b.circle.body.setVelocity(0,0));
-        // Keep fake matchmaking/countdown perfectly centered on mobile while camera zoom changes.
-        if (scene.isTouchDevice) {
+        {
           const camMain = scene.cameras.main;
           const z = camMain.zoom || 1;
           const invZ = 1 / z;
@@ -1938,8 +1948,8 @@
             el.y = (sy - ch) * invZ + ch;
             el.setScale(invZ);
           };
-          const cx = scene._countdownCx || GAME_WIDTH / 2;
-          const cy = scene._countdownCy || GAME_HEIGHT / 2;
+          const cx = GAME_WIDTH / 2;
+          const cy = GAME_HEIGHT / 2;
           fixHud(scene.waitingTitle, cx, cy - 40);
           fixHud(scene.waitingCount, cx, cy + 18);
           fixHud(scene.countdownNum, cx, cy);
