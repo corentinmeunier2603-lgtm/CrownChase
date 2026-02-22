@@ -649,8 +649,9 @@
     function isTouchControlMode() {
       const hasTouch = (navigator.maxTouchPoints || 0) > 0;
       const coarsePointer = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+      const uaMobileLike = /Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent || '');
       // Mobile/tablet only: avoid enabling touch HUD on desktop touchscreens.
-      return hasTouch && (coarsePointer || window.innerWidth <= 1024);
+      return hasTouch && (coarsePointer || uaMobileLike || Math.min(window.innerWidth, window.innerHeight) <= 1024);
     }
     function isPortraitOrientation() {
       if (window.matchMedia) return window.matchMedia('(orientation: portrait)').matches;
@@ -1872,6 +1873,13 @@
               scene.countdownNum = null;
             }
           });
+          // Safety cleanup in case another tween chain re-shows GO.
+          this.time.delayedCall(380, () => {
+            if (scene.countdownNum && scene.countdownNum.active) {
+              scene.countdownNum.destroy();
+              scene.countdownNum = null;
+            }
+          });
           scene.gameStarted = true;
         });
       };
@@ -1882,10 +1890,13 @@
       }
       lastFakeLobbyDurationMs = fakeLobbyDurationMs;
       const fakeMatchEndAt = scene.time.now + fakeLobbyDurationMs;
+      scene._fakeCountdownStarted = false;
       const tickFakeMatchmaking = () => {
         const remainingMs = Math.max(0, fakeMatchEndAt - scene.time.now);
         const remainingSlots = Math.max(0, fakeTargetPlayers - fakeConnected);
         if (remainingSlots <= 0) {
+          if (scene._fakeCountdownStarted) return;
+          scene._fakeCountdownStarted = true;
           scene.tweens.add({ targets: [waitingTitle, waitingCount], alpha: 0, duration: 220, ease: 'Quad.easeIn',
             onComplete: () => {
               waitingTitle.destroy();
