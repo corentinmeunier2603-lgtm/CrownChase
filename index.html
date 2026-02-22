@@ -1,0 +1,3682 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Crown Chase Prototype</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: radial-gradient(circle at top, #0b1b3a 0%, #020814 60%, #000000 100%);
+      font-family: Arial, Helvetica, sans-serif;
+      color: #ffffff;
+      margin: 0; padding: 0; overflow: hidden;
+    }
+    #game-container { position: fixed; inset: 0; width: 100vw; height: 100vh; overflow: hidden; display: none; }
+    canvas { display: block; }
+
+    #menu-screen {
+      position: fixed; inset: 0; z-index: 1000;
+      display: flex; flex-direction: column; align-items: center; justify-content: safe center;
+      background: radial-gradient(circle at top, #0b1b3a 0%, #020814 60%, #000000 100%);
+      overflow-y: auto; -ms-overflow-style: none; scrollbar-width: none;
+    }
+    #menu-screen::-webkit-scrollbar { display: none; }
+    #menu-screen .title {
+      font-size: 56px; font-weight: bold; color: #ffd700;
+      text-shadow: 0 0 30px rgba(255,215,0,0.4), 0 4px 8px rgba(0,0,0,0.6);
+      margin-bottom: 8px; letter-spacing: 2px;
+    }
+    #menu-screen .subtitle {
+      font-size: 18px; color: #8899bb; margin-bottom: 32px;
+    }
+
+    .how-to-section {
+      width: 100%; display: flex; flex-direction: column; align-items: center;
+      margin-top: 50px; padding-top: 30px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+    .how-to-label {
+      font-size: 17px; font-weight: bold; color: #667899;
+      text-transform: uppercase; letter-spacing: 4px; margin-bottom: 22px;
+    }
+
+    .how-to-play {
+      display: flex; gap: 18px; margin-bottom: 0; padding: 0 20px;
+    }
+    .step-card {
+      width: 170px; padding: 22px 16px 18px;
+      background: transparent; border: none;
+      text-align: center; position: relative;
+    }
+    .step-num {
+      position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+      width: 26px; height: 26px; border-radius: 50%;
+      background: linear-gradient(135deg, #ffd700, #ff8c00);
+      color: #000; font-size: 14px; font-weight: bold;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 12px rgba(255,215,0,0.4);
+    }
+    .step-icon { font-size: 34px; margin-bottom: 10px; margin-top: 4px; }
+    .step-title {
+      font-size: 14px; font-weight: bold; color: #ffffff; margin-bottom: 6px;
+      line-height: 1.3;
+    }
+    .step-desc {
+      font-size: 11.5px; color: #7a8aaa; line-height: 1.45;
+    }
+    .step-connector {
+      display: flex; align-items: center; color: rgba(255,215,0,0.3);
+      font-size: 20px; margin-top: 10px; user-select: none;
+    }
+
+    .step-card, .step-connector {
+      opacity: 0; animation: stepIn 0.5s ease forwards;
+    }
+    .how-to-play > :nth-child(1) { animation-delay: 0.2s; }
+    .how-to-play > :nth-child(2) { animation-delay: 0.4s; }
+    .how-to-play > :nth-child(3) { animation-delay: 0.6s; }
+    .how-to-play > :nth-child(4) { animation-delay: 0.8s; }
+    .how-to-play > :nth-child(5) { animation-delay: 1.0s; }
+    .how-to-play > :nth-child(6) { animation-delay: 1.2s; }
+    .how-to-play > :nth-child(7) { animation-delay: 1.4s; }
+    @keyframes stepIn {
+      from { opacity: 0; transform: translateY(20px) scale(0.9); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    #menu-screen .mode-cards {
+      display: flex; gap: 30px; margin-bottom: 30px;
+    }
+    .mode-card {
+      width: 280px; padding: 36px 28px; border-radius: 20px;
+      background: rgba(255,255,255,0.04); border: 2px solid rgba(255,255,255,0.1);
+      text-align: center; cursor: pointer; transition: all 0.25s ease;
+    }
+    .mode-card:hover {
+      border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.08);
+      transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+    }
+    .mode-card.selected {
+      border-color: #ffd700; background: rgba(255,215,0,0.08);
+      box-shadow: 0 0 25px rgba(255,215,0,0.15);
+    }
+    .mode-card .mode-icon { font-size: 42px; margin-bottom: 12px; }
+    .mode-card .mode-title { font-size: 24px; font-weight: bold; color: #ffffff; margin-bottom: 8px; }
+    .mode-card .mode-desc { font-size: 13px; color: #8899bb; line-height: 1.5; }
+    .mode-card.selected .mode-title { color: #ffd700; }
+
+    #guest-panel, #compet-panel {
+      display: none; flex-direction: column; align-items: center; gap: 16px;
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .menu-input {
+      width: 260px; padding: 14px 18px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.06); color: #ffffff; font-size: 18px; font-family: Arial;
+      outline: none; text-align: center; transition: border-color 0.2s;
+    }
+    .menu-input:focus { border-color: #ffd700; }
+    .menu-input::placeholder { color: #556688; }
+
+    .menu-btn {
+      width: 260px; padding: 16px; border-radius: 14px; border: none;
+      font-size: 20px; font-weight: bold; cursor: pointer; transition: all 0.2s;
+      font-family: Arial;
+    }
+    .menu-btn.green { background: #39ff14; color: #000; }
+    .menu-btn.green:hover { background: #50ff50; transform: scale(1.03); }
+    .menu-btn.gold { background: #ffd700; color: #000; }
+    .menu-btn.gold:hover { background: #ffe040; transform: scale(1.03); }
+    .menu-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .compet-info { font-size: 14px; color: #667799; text-align: center; max-width: 320px; line-height: 1.5; }
+    .auth-mode-switch {
+      display: flex; gap: 8px; margin-top: -4px;
+    }
+    .auth-mode-btn {
+      padding: 8px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.06); color: #aabbcc; font-size: 13px;
+      cursor: pointer; font-weight: bold; transition: all 0.2s;
+    }
+    .auth-mode-btn.active {
+      border-color: #ffd700; color: #ffd700; background: rgba(255,215,0,0.12);
+    }
+
+    #controls-toggle-btn {
+      position: fixed; bottom: 24px; right: 24px; z-index: 1010;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 14px 24px; border-radius: 14px; border: 2px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06); color: #8899bb; font-size: 18px;
+      font-weight: bold; font-family: Arial; cursor: pointer; transition: all 0.2s;
+      backdrop-filter: blur(6px);
+    }
+    #controls-toggle-btn:hover {
+      background: rgba(255,255,255,0.1); border-color: rgba(255,215,0,0.4); color: #ffd700;
+    }
+    #controls-toggle-btn .ctrl-btn-icon { font-size: 22px; }
+
+    #controls-panel {
+      display: none; flex-direction: column; align-items: flex-start; gap: 0;
+      position: fixed; bottom: 70px; right: 24px; z-index: 1020;
+      width: 420px; max-width: 85vw; max-height: 60vh; overflow-y: auto;
+      padding: 14px 16px; border-radius: 14px;
+      background: rgba(10,15,30,0.96); border: 1px solid rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px); box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+      animation: fadeIn 0.25s ease;
+    }
+    .controls-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; width: 100%;
+    }
+    .ctrl-item {
+      display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+      border-radius: 12px; background: rgba(255,255,255,0.04);
+    }
+    .ctrl-key {
+      min-width: 44px; height: 36px; border-radius: 8px;
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: bold; color: #ffd700; font-family: Arial;
+      white-space: nowrap; padding: 0 10px;
+    }
+    .ctrl-label { font-size: 13px; color: #aabbcc; line-height: 1.3; }
+    .ctrl-label strong { color: #ffffff; }
+    .controls-divider {
+      width: 100%; text-align: center; padding: 12px 0 6px;
+      font-size: 12px; font-weight: bold; color: #556677;
+      text-transform: uppercase; letter-spacing: 3px;
+    }
+    .powerup-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px; width: 100%;
+    }
+    .pu-item {
+      display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+      border-radius: 10px; background: rgba(255,255,255,0.03);
+    }
+    .pu-icon { font-size: 22px; min-width: 30px; text-align: center; }
+    .pu-info { font-size: 12px; color: #8899aa; line-height: 1.3; }
+    .pu-info .pu-name { color: #ffffff; font-weight: bold; font-size: 13px; }
+
+    #lang-btn {
+      position: absolute; top: 20px; right: 24px;
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 16px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.05); color: #8899bb; font-size: 15px;
+      font-weight: bold; font-family: Arial; cursor: pointer; transition: all 0.2s;
+      backdrop-filter: blur(6px); z-index: 1005;
+    }
+    #lang-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,215,0,0.4); color: #ffd700; }
+    #lang-btn .lang-flag { font-size: 20px; }
+    #lang-dropdown {
+      display: none; position: absolute; top: 52px; right: 0; z-index: 1006;
+      background: rgba(10,15,30,0.97); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px; padding: 6px 0; min-width: 180px;
+      backdrop-filter: blur(10px); box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+      animation: fadeIn 0.2s ease;
+    }
+    .lang-option {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px; cursor: pointer; font-size: 14px;
+      color: #aabbcc; font-family: Arial; transition: all 0.15s;
+    }
+    .lang-option:hover { background: rgba(255,215,0,0.08); color: #ffd700; }
+    .lang-option.active { color: #ffd700; font-weight: bold; }
+    .lang-option .lo-flag { font-size: 18px; }
+
+    #infos-btn {
+      position: absolute; top: 20px; left: 24px; z-index: 1005;
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 16px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.05); color: #8899bb; font-size: 15px;
+      font-weight: bold; font-family: Arial; cursor: pointer; transition: all 0.2s;
+      backdrop-filter: blur(6px);
+    }
+    #infos-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,215,0,0.4); color: #ffd700; }
+    #infos-panel {
+      display: none; position: absolute; top: 64px; left: 24px; z-index: 1006;
+      width: 310px; max-width: 85vw; padding: 14px 14px 12px; border-radius: 12px;
+      background: rgba(10,15,30,0.97); border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.5); backdrop-filter: blur(10px);
+      animation: fadeIn 0.2s ease;
+    }
+    .infos-title {
+      font-size: 14px; font-weight: bold; color: #ffd700; letter-spacing: 1.5px;
+      text-transform: uppercase; margin-bottom: 10px;
+    }
+    .infos-row {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 13px; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .infos-row:last-child { border-bottom: none; }
+    .infos-k { color: #8fa2c2; }
+    .infos-v { color: #ffffff; font-weight: bold; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.min.js"></script>
+</head>
+<body>
+  <!-- Écran d'accueil -->
+  <div id="menu-screen">
+    <div id="infos-btn" onclick="toggleInfosPanel()">
+      <span style="font-size:16px">📊</span> Infos
+    </div>
+    <div id="infos-panel">
+      <div class="infos-title">Infos invité</div>
+      <div class="infos-row"><span class="infos-k">Pseudo</span><span class="infos-v" id="info-pseudo">—</span></div>
+      <div class="infos-row"><span class="infos-k">Niveau</span><span class="infos-v" id="info-level">1</span></div>
+      <div class="infos-row"><span class="infos-k">XP total</span><span class="infos-v" id="info-xp">0</span></div>
+      <div class="infos-row"><span class="infos-k">Meilleur score</span><span class="infos-v" id="info-best-score">0</span></div>
+      <div class="infos-row"><span class="infos-k">Parties jouées</span><span class="infos-v" id="info-games">0</span></div>
+      <div class="infos-row"><span class="infos-k">Dernière partie</span><span class="infos-v" id="info-last">Jamais</span></div>
+    </div>
+    <div id="lang-btn" onclick="toggleLangDropdown()">
+      <span class="lang-flag" id="lang-current-flag" style="font-size:28px">🇫🇷</span>
+      <span style="font-size:10px;opacity:0.5">▼</span>
+      <div id="lang-dropdown">
+        <div class="lang-option active" data-lang="fr" onclick="setLang('fr',event)"><span class="lo-flag">🇫🇷</span> Français</div>
+        <div class="lang-option" data-lang="en" onclick="setLang('en',event)"><span class="lo-flag">🇬🇧</span> English</div>
+        <div class="lang-option" data-lang="es" onclick="setLang('es',event)"><span class="lo-flag">🇪🇸</span> Español</div>
+        <div class="lang-option" data-lang="zh" onclick="setLang('zh',event)"><span class="lo-flag">🇨🇳</span> 中文</div>
+        <div class="lang-option" data-lang="it" onclick="setLang('it',event)"><span class="lo-flag">🇮🇹</span> Italiano</div>
+      </div>
+    </div>
+    <div class="title">♕ Crown Chase</div>
+    <div class="subtitle">Attrape la couronne. Garde-la. Domine.</div>
+
+    <div class="mode-cards">
+      <div class="mode-card" id="card-guest" onclick="selectMode('guest')">
+        <div class="mode-icon">🎮</div>
+        <div class="mode-title">Invité</div>
+        <div class="mode-desc">Joue directement. Choisis un pseudo et c'est parti&nbsp;!</div>
+      </div>
+      <div class="mode-card" id="card-compet" style="opacity:0.5;cursor:default;pointer-events:none;position:relative">
+        <div class="mode-icon">🏆</div>
+        <div class="mode-title">Compétition</div>
+        <div class="mode-desc">Accumule de l'XP, passe des niveaux et entre dans le classement mondial.</div>
+        <div style="margin-top:12px;padding:6px 14px;border-radius:8px;background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.3);color:#ffd700;font-size:13px;font-weight:bold;letter-spacing:1px">BIENTÔT DISPONIBLE</div>
+      </div>
+    </div>
+
+    <div id="guest-panel">
+      <input class="menu-input" id="guest-pseudo" type="text" placeholder="Ton pseudo..." maxlength="16" />
+      <button class="menu-btn green" id="guest-play-btn" onclick="startGame('guest')" disabled>JOUER</button>
+    </div>
+
+    <div id="compet-panel">
+      <p class="compet-info" id="compet-auth-info">Crée un compte compétitif avec email + mot de passe.</p>
+      <div class="auth-mode-switch">
+        <button id="compet-auth-register" class="auth-mode-btn active" onclick="setCompetAuthMode('register')">Inscription</button>
+        <button id="compet-auth-login" class="auth-mode-btn" onclick="setCompetAuthMode('login')">Connexion</button>
+      </div>
+      <input class="menu-input" id="compet-email" type="email" placeholder="Email..." maxlength="120" autocomplete="email" />
+      <input class="menu-input" id="compet-pseudo" type="text" placeholder="Pseudo compétition..." maxlength="16" autocomplete="username" />
+      <input class="menu-input" id="compet-password" type="password" placeholder="Mot de passe (min 6)" maxlength="72" autocomplete="current-password" />
+      <button class="menu-btn gold" id="compet-play-btn" onclick="startCompetitionMode()" disabled style="width:320px">CRÉER MON COMPTE & JOUER</button>
+      <p class="compet-info" id="compet-account-hint">Serveur requis: lance l'API locale sur le port 8787.</p>
+    </div>
+
+    <div class="how-to-section">
+      <div class="how-to-play">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-icon">🔋</div>
+          <div class="step-title">Absorbe l'énergie</div>
+          <div class="step-desc">Avale les billes sur la map pour charger ta puissance</div>
+        </div>
+        <div class="step-connector">▸</div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-icon">⚔️</div>
+          <div class="step-title">Renverse le roi</div>
+          <div class="step-desc">Fonce sur le porteur de la couronne pour la lui voler</div>
+        </div>
+        <div class="step-connector">▸</div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-icon">👑</div>
+          <div class="step-title">Défends ton trône</div>
+          <div class="step-desc">Protège ta couronne jusqu'à la dernière seconde</div>
+        </div>
+        <div class="step-connector">▸</div>
+        <div class="step-card">
+          <div class="step-num">4</div>
+          <div class="step-icon">🌍</div>
+          <div class="step-title">Domine le monde</div>
+          <div class="step-desc">Le roi à la fin du temps remporte la victoire suprême</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="controls-toggle-btn" onclick="toggleControls()">
+    <span class="ctrl-btn-icon">🕹️</span> Commandes
+  </div>
+  <div id="controls-panel">
+    <div class="controls-grid">
+      <div class="ctrl-item">
+        <div class="ctrl-key">ESPACE</div>
+        <div class="ctrl-label"><strong>Boost</strong><br>Accélère en consommant ton énergie</div>
+      </div>
+      <div class="ctrl-item">
+        <div class="ctrl-key" style="padding:0;background:none;border:none;min-width:44px;height:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
+          <span style="font-size:11px;font-weight:bold;color:#ffd700">CLIC</span>
+          <svg width="30" height="40" viewBox="0 0 36 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="6" width="32" height="38" rx="14" ry="14" stroke="#ffd700" stroke-width="2" fill="rgba(255,255,255,0.06)"/>
+            <line x1="18" y1="6" x2="18" y2="22" stroke="#444" stroke-width="1.5"/>
+            <rect x="8" y="7" width="10" height="15" rx="5" ry="4" fill="#ffd700" opacity="0.85"/>
+            <circle cx="13" cy="14" r="2" fill="#000" opacity="0.3"/>
+          </svg>
+        </div>
+        <div class="ctrl-label"><strong>Utiliser power-up</strong><br>Active le pouvoir en bas à droite</div>
+      </div>
+    </div>
+    <div class="controls-divider">— Power-ups (caisses mystères) —</div>
+    <div class="powerup-grid">
+      <div class="pu-item">
+        <div class="pu-icon">⚡</div>
+        <div class="pu-info"><span class="pu-name">Turbo</span><br>Dash ultra-rapide instantané</div>
+      </div>
+      <div class="pu-item">
+        <div class="pu-icon">💨</div>
+        <div class="pu-info"><span class="pu-name">Speed</span><br>Vitesse x3 pendant quelques sec.</div>
+      </div>
+      <div class="pu-item">
+        <div class="pu-icon">🧲</div>
+        <div class="pu-info"><span class="pu-name">Magnet</span><br>Attire les billes autour de toi</div>
+      </div>
+      <div class="pu-item">
+        <div class="pu-icon">💢</div>
+        <div class="pu-info"><span class="pu-name">Rage</span><br>Brise le bouclier du roi au contact</div>
+      </div>
+      <div class="pu-item">
+        <div class="pu-icon">👻</div>
+        <div class="pu-info"><span class="pu-name">Ghost</span><br>Invisible + traverse le bouclier</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="game-container"></div>
+  <script>
+    // --- Langues ---
+    let currentLang = 'fr';
+    const LANGS = {
+      fr: { flag: '🇫🇷', name: 'Français' },
+      en: { flag: '🇬🇧', name: 'English' },
+      es: { flag: '🇪🇸', name: 'Español' },
+      zh: { flag: '🇨🇳', name: '中文' },
+      it: { flag: '🇮🇹', name: 'Italiano' }
+    };
+    const TR = {
+      subtitle:        { fr: 'Attrape la couronne. Garde-la. Domine.', en: 'Catch the crown. Keep it. Dominate.', es: 'Atrapa la corona. Consérvala. Domina.', zh: '抢夺王冠。守住它。称霸。', it: 'Prendi la corona. Tienila. Domina.' },
+      guestTitle:      { fr: 'Invité', en: 'Guest', es: 'Invitado', zh: '访客', it: 'Ospite' },
+      guestDesc:       { fr: 'Joue directement. Choisis un pseudo et c\'est parti !', en: 'Play directly with players from around the world.<br>Pick a name and go!', es: 'Juega directamente con jugadores de todo el mundo.<br>Elige un nombre y ¡vamos!', zh: '与全世界的玩家一起游戏。<br>选个名字，开始吧！', it: 'Gioca direttamente con i giocatori di tutto il mondo.<br>Scegli un nome e via!' },
+      competTitle:     { fr: 'Compétition', en: 'Ranked', es: 'Competición', zh: '竞技', it: 'Competizione' },
+      competDesc:      { fr: 'Accumule de l\'XP, passe des niveaux et entre dans le classement mondial.', en: 'Earn XP, level up and climb the global leaderboard.', es: 'Acumula XP, sube de nivel y entra en el ranking mundial.', zh: '积累经验，升级并进入全球排行榜。', it: 'Accumula XP, sali di livello e scala la classifica mondiale.' },
+      pseudoPlaceholder: { fr: 'Ton pseudo...', en: 'Your name...', es: 'Tu nombre...', zh: '你的名字...', it: 'Il tuo nome...' },
+      playBtn:         { fr: 'JOUER', en: 'PLAY', es: 'JUGAR', zh: '开始', it: 'GIOCA' },
+      competInfo:      { fr: 'Compte compétitif sécurisé avec email et mot de passe.', en: 'Secure competitive account with email and password.', es: 'Cuenta competitiva segura con correo y contraseña.', zh: '使用邮箱和密码的安全竞技账号。', it: 'Account competitivo sicuro con email e password.' },
+      competModeRegister: { fr: 'Inscription', en: 'Sign up', es: 'Registro', zh: '注册', it: 'Registrati' },
+      competModeLogin:  { fr: 'Connexion', en: 'Login', es: 'Acceso', zh: '登录', it: 'Accesso' },
+      competEmail:      { fr: 'Email...', en: 'Email...', es: 'Correo...', zh: '邮箱...', it: 'Email...' },
+      competPseudo:    { fr: 'Pseudo compétition...', en: 'Ranked name...', es: 'Nombre competición...', zh: '竞技昵称...', it: 'Nome competizione...' },
+      competPassword:   { fr: 'Mot de passe (min 6)', en: 'Password (min 6)', es: 'Contraseña (mín 6)', zh: '密码（至少6位）', it: 'Password (min 6)' },
+      competBtn:       { fr: 'CRÉER MON COMPTE & JOUER', en: 'CREATE ACCOUNT & PLAY', es: 'CREAR CUENTA Y JUGAR', zh: '创建账号并开始', it: 'CREA ACCOUNT E GIOCA' },
+      competBtnLogin:  { fr: 'SE CONNECTER & JOUER', en: 'LOGIN & PLAY', es: 'INICIAR SESIÓN Y JUGAR', zh: '登录并开始', it: 'ACCEDI E GIOCA' },
+      competBtnPlay:   { fr: 'JOUER EN COMPÉTITION', en: 'PLAY RANKED', es: 'JUGAR COMPETICIÓN', zh: '竞技模式', it: 'GIOCA COMPETIZIONE' },
+      competHint:      { fr: 'Serveur requis: lance l\'API locale sur le port 8787.', en: 'Server required: run local API on port 8787.', es: 'Servidor requerido: inicia la API local en el puerto 8787.', zh: '需要服务器：在8787端口运行本地API。', it: 'Server richiesto: avvia API locale sulla porta 8787.' },
+      step1Title:      { fr: 'Absorbe l\'énergie', en: 'Absorb energy', es: 'Absorbe energía', zh: '吸收能量', it: 'Assorbi energia' },
+      step1Desc:       { fr: 'Avale les billes sur la map pour charger ta puissance', en: 'Eat pellets on the map to charge your power', es: 'Come las bolas del mapa para cargar tu poder', zh: '吃掉地图上的能量球来充能', it: 'Mangia le sfere sulla mappa per caricare la tua potenza' },
+      step2Title:      { fr: 'Renverse le roi', en: 'Overthrow the king', es: 'Derroca al rey', zh: '推翻国王', it: 'Rovescia il re' },
+      step2Desc:       { fr: 'Fonce sur le porteur de la couronne pour la lui voler', en: 'Rush the crown holder to steal it', es: 'Embiste al portador de la corona para robársela', zh: '冲向王冠持有者，夺取王冠', it: 'Carica il portatore della corona per rubargliela' },
+      step3Title:      { fr: 'Défends ton trône', en: 'Defend your throne', es: 'Defiende tu trono', zh: '守卫你的王座', it: 'Difendi il tuo trono' },
+      step3Desc:       { fr: 'Protège ta couronne jusqu\'à la dernière seconde', en: 'Protect your crown until the last second', es: 'Protege tu corona hasta el último segundo', zh: '守住王冠直到最后一秒', it: 'Proteggi la corona fino all\'ultimo secondo' },
+      step4Title:      { fr: 'Domine le monde', en: 'Dominate the world', es: 'Domina el mundo', zh: '统治世界', it: 'Domina il mondo' },
+      step4Desc:       { fr: 'Le roi à la fin du temps remporte la victoire suprême', en: 'The king at the end wins the ultimate victory', es: 'El rey al final gana la victoria suprema', zh: '时间结束时的国王赢得最终胜利', it: 'Il re alla fine del tempo vince la vittoria suprema' },
+      controlsBtn:     { fr: 'Commandes', en: 'Controls', es: 'Controles', zh: '操作', it: 'Comandi' },
+      ctrlSpace:       { fr: 'ESPACE', en: 'SPACE', es: 'ESPACIO', zh: '空格', it: 'SPAZIO' },
+      ctrlBoost:       { fr: '<strong>Boost</strong><br>Accélère en consommant ton énergie', en: '<strong>Boost</strong><br>Speed up by using your energy', es: '<strong>Boost</strong><br>Acelera usando tu energía', zh: '<strong>加速</strong><br>消耗能量来加速', it: '<strong>Boost</strong><br>Accelera consumando la tua energia' },
+      ctrlClick:       { fr: 'CLIC', en: 'CLICK', es: 'CLIC', zh: '点击', it: 'CLIC' },
+      ctrlPowerup:     { fr: '<strong>Utiliser power-up</strong><br>Active le pouvoir en bas à droite', en: '<strong>Use power-up</strong><br>Activate the ability at bottom-right', es: '<strong>Usar power-up</strong><br>Activa el poder abajo a la derecha', zh: '<strong>使用道具</strong><br>激活右下角的能力', it: '<strong>Usa power-up</strong><br>Attiva il potere in basso a destra' },
+      ctrlDivider:     { fr: '— Power-ups (caisses mystères) —', en: '— Power-ups (mystery boxes) —', es: '— Power-ups (cajas misteriosas) —', zh: '— 道具（神秘箱）—', it: '— Power-up (casse misteriose) —' },
+      puTurbo:         { fr: 'Dash ultra-rapide instantané', en: 'Instant ultra-fast dash', es: 'Dash ultra-rápido instantáneo', zh: '瞬间极速冲刺', it: 'Scatto ultra-rapido istantaneo' },
+      puSpeed:         { fr: 'Vitesse x3 pendant quelques sec.', en: 'Speed x3 for a few seconds', es: 'Velocidad x3 durante unos seg.', zh: '速度x3持续几秒', it: 'Velocità x3 per qualche sec.' },
+      puMagnet:        { fr: 'Attire les billes autour de toi', en: 'Attracts pellets around you', es: 'Atrae las bolas a tu alrededor', zh: '吸引周围的能量球', it: 'Attira le sfere intorno a te' },
+      puRage:          { fr: 'Brise le bouclier du roi au contact', en: 'Breaks the king\'s shield on contact', es: 'Rompe el escudo del rey al contacto', zh: '接触即破国王护盾', it: 'Rompe lo scudo del re al contatto' },
+      puGhost:         { fr: 'Invisible + traverse le bouclier', en: 'Invisible + pass through shield', es: 'Invisible + atraviesa el escudo', zh: '隐身+穿透护盾', it: 'Invisibile + attraversa lo scudo' }
+    };
+
+    function t(key) { return (TR[key] && TR[key][currentLang]) || (TR[key] && TR[key]['fr']) || key; }
+
+    function toggleLangDropdown() {
+      const dd = document.getElementById('lang-dropdown');
+      dd.style.display = dd.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function setLang(lang, evt) {
+      if (evt) evt.stopPropagation();
+      currentLang = lang;
+      document.getElementById('lang-current-flag').textContent = LANGS[lang].flag;
+      document.getElementById('lang-dropdown').style.display = 'none';
+      document.querySelectorAll('.lang-option').forEach(o => o.classList.toggle('active', o.dataset.lang === lang));
+      applyTranslations();
+    }
+
+    function applyTranslations() {
+      document.querySelector('#menu-screen .subtitle').textContent = t('subtitle');
+      document.querySelector('#card-guest .mode-title').textContent = t('guestTitle');
+      document.querySelector('#card-guest .mode-desc').innerHTML = t('guestDesc');
+      document.querySelector('#card-compet .mode-title').textContent = t('competTitle');
+      document.querySelector('#card-compet .mode-desc').innerHTML = t('competDesc');
+      document.getElementById('guest-pseudo').placeholder = t('pseudoPlaceholder');
+      document.getElementById('guest-play-btn').textContent = t('playBtn');
+      document.querySelector('#compet-panel .compet-info').innerHTML = t('competInfo');
+      document.getElementById('compet-auth-register').textContent = t('competModeRegister');
+      document.getElementById('compet-auth-login').textContent = t('competModeLogin');
+      document.getElementById('compet-email').placeholder = t('competEmail');
+      document.getElementById('compet-pseudo').placeholder = t('competPseudo');
+      document.getElementById('compet-password').placeholder = t('competPassword');
+      refreshCompetitionUiText();
+      document.getElementById('compet-account-hint').textContent = t('competHint');
+
+      const steps = document.querySelectorAll('.step-card');
+      const stepKeys = ['step1','step2','step3','step4'];
+      steps.forEach((s, i) => {
+        if (stepKeys[i]) {
+          s.querySelector('.step-title').textContent = t(stepKeys[i] + 'Title');
+          s.querySelector('.step-desc').textContent = t(stepKeys[i] + 'Desc');
+        }
+      });
+
+      const ctrlBtn = document.getElementById('controls-toggle-btn');
+      if (ctrlBtn) ctrlBtn.lastChild.textContent = ' ' + t('controlsBtn');
+      const spaceKey = document.querySelector('#controls-panel .ctrl-key:not([style])');
+      if (spaceKey) spaceKey.textContent = t('ctrlSpace');
+      const ctrlLabels = document.querySelectorAll('#controls-panel .ctrl-label');
+      if (ctrlLabels[0]) ctrlLabels[0].innerHTML = t('ctrlBoost');
+      if (ctrlLabels[1]) ctrlLabels[1].innerHTML = t('ctrlPowerup');
+      const clickSpan = document.querySelector('#controls-panel .ctrl-key span[style]');
+      if (clickSpan) clickSpan.textContent = t('ctrlClick');
+      const divider = document.querySelector('#controls-panel .controls-divider');
+      if (divider) divider.textContent = t('ctrlDivider');
+
+      const puDescs = document.querySelectorAll('#controls-panel .pu-info');
+      const puKeys = ['puTurbo','puSpeed','puMagnet','puRage','puGhost'];
+      puDescs.forEach((el, i) => {
+        if (puKeys[i]) {
+          const nameEl = el.querySelector('.pu-name');
+          const name = nameEl ? nameEl.textContent : '';
+          el.innerHTML = '<span class="pu-name">' + name + '</span><br>' + t(puKeys[i]);
+        }
+      });
+    }
+
+    document.addEventListener('click', (e) => {
+      const langBtn = document.getElementById('lang-btn');
+      if (langBtn && !langBtn.contains(e.target)) {
+        document.getElementById('lang-dropdown').style.display = 'none';
+      }
+      const infosBtn = document.getElementById('infos-btn');
+      const infosPanel = document.getElementById('infos-panel');
+      if (infosPanel && infosBtn && !infosBtn.contains(e.target) && !infosPanel.contains(e.target)) {
+        infosPanel.style.display = 'none';
+      }
+    });
+
+    // --- Menu d'accueil ---
+    let selectedMode = null;
+    let playerPseudo = 'Joueur';
+    let gameMode = 'guest';
+    let competitionAccount = null;
+    let competitionAuthMode = 'register';
+    const GUEST_PROGRESS_KEY = 'crown-chase-guest-progression';
+    let guestProgress = null;
+    const COMPET_API_BASE = window.COMPET_API_BASE || 'http://localhost:8787';
+
+    function selectMode(mode) {
+      selectedMode = mode;
+      document.getElementById('card-guest').classList.toggle('selected', mode === 'guest');
+      document.getElementById('card-compet').classList.toggle('selected', mode === 'compet');
+      document.getElementById('guest-panel').style.display = mode === 'guest' ? 'flex' : 'none';
+      document.getElementById('compet-panel').style.display = mode === 'compet' ? 'flex' : 'none';
+      if (mode === 'guest') document.getElementById('guest-pseudo').focus();
+      if (mode === 'compet') document.getElementById('compet-email').focus();
+    }
+
+    function toggleControls() {
+      const panel = document.getElementById('controls-panel');
+      const isVisible = panel.style.display === 'flex';
+      panel.style.display = isVisible ? 'none' : 'flex';
+    }
+
+    function getGuestLevelInfo(totalXP) {
+      const xp = Math.max(0, totalXP || 0);
+      const xpLevels = [0];
+      let req = 500;
+      for (let i = 0; i < 50; i++) { xpLevels.push(Math.round(req)); req *= 2.2; }
+      let lvl = 0;
+      for (let i = 0; i < xpLevels.length - 1; i++) {
+        if (xp >= xpLevels[i]) lvl = i; else break;
+      }
+      return { level: lvl + 1 };
+    }
+
+    function refreshGuestInfosPanel() {
+      if (!guestProgress) guestProgress = loadGuestProgress();
+      const p = guestProgress || {};
+      const levelInfo = getGuestLevelInfo(p.totalXP || 0);
+      const lastTxt = p.lastPlayedAt ? new Date(p.lastPlayedAt).toLocaleString() : 'Jamais';
+      const setText = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = String(value);
+      };
+      setText('info-pseudo', p.pseudo || '—');
+      setText('info-level', levelInfo.level);
+      setText('info-xp', p.totalXP || 0);
+      setText('info-best-score', p.bestScore || 0);
+      setText('info-games', p.gamesPlayed || 0);
+      setText('info-last', lastTxt);
+    }
+
+    function toggleInfosPanel() {
+      const panel = document.getElementById('infos-panel');
+      if (!panel) return;
+      const isVisible = panel.style.display === 'block';
+      panel.style.display = isVisible ? 'none' : 'block';
+      if (!isVisible) refreshGuestInfosPanel();
+    }
+
+    function isValidEmail(email) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    function setCompetAuthMode(mode) {
+      competitionAuthMode = mode === 'login' ? 'login' : 'register';
+      const pseudoInput = document.getElementById('compet-pseudo');
+      if (pseudoInput) pseudoInput.style.display = competitionAuthMode === 'register' ? 'block' : 'none';
+      refreshCompetitionUiText();
+      updateCompetitionButtonState();
+    }
+
+    function refreshCompetitionUiText() {
+      const registerBtn = document.getElementById('compet-auth-register');
+      const loginBtn = document.getElementById('compet-auth-login');
+      const playBtn = document.getElementById('compet-play-btn');
+      if (registerBtn) registerBtn.classList.toggle('active', competitionAuthMode === 'register');
+      if (loginBtn) loginBtn.classList.toggle('active', competitionAuthMode === 'login');
+      if (!playBtn) return;
+      if (competitionAuthMode === 'login') {
+        playBtn.textContent = t('competBtnLogin');
+      } else {
+        playBtn.textContent = t('competBtn');
+      }
+    }
+
+    function loadCompetitionAccount() {
+      try {
+        const raw = localStorage.getItem('crown-chase-competition-account');
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') return null;
+        if (!parsed.email || typeof parsed.email !== 'string') return null;
+        if (!parsed.pseudo || typeof parsed.pseudo !== 'string') return null;
+        return parsed;
+      } catch (_e) {
+        return null;
+      }
+    }
+
+    function loadGuestProgress() {
+      try {
+        const raw = localStorage.getItem(GUEST_PROGRESS_KEY);
+        if (!raw) {
+          return {
+            pseudo: '',
+            totalXP: 0,
+            bestScore: 0,
+            gamesPlayed: 0,
+            lastPlayedAt: 0
+          };
+        }
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') throw new Error('invalid');
+        return {
+          pseudo: typeof parsed.pseudo === 'string' ? parsed.pseudo : '',
+          totalXP: Number.isFinite(parsed.totalXP) ? Math.max(0, parsed.totalXP) : 0,
+          bestScore: Number.isFinite(parsed.bestScore) ? Math.max(0, parsed.bestScore) : 0,
+          gamesPlayed: Number.isFinite(parsed.gamesPlayed) ? Math.max(0, parsed.gamesPlayed) : 0,
+          lastPlayedAt: Number.isFinite(parsed.lastPlayedAt) ? parsed.lastPlayedAt : 0
+        };
+      } catch (_e) {
+        return {
+          pseudo: '',
+          totalXP: 0,
+          bestScore: 0,
+          gamesPlayed: 0,
+          lastPlayedAt: 0
+        };
+      }
+    }
+
+    function saveGuestProgress(progress) {
+      try {
+        localStorage.setItem(GUEST_PROGRESS_KEY, JSON.stringify(progress));
+      } catch (_e) {
+        // Ignore storage failures and continue with in-memory progress.
+      }
+    }
+
+    function saveCompetitionAccount(account) {
+      try {
+        localStorage.setItem('crown-chase-competition-account', JSON.stringify(account));
+      } catch (_e) {
+        // Ignore storage failures and continue with in-memory account.
+      }
+    }
+
+    function updateCompetitionButtonState() {
+      const competEmailInput = document.getElementById('compet-email');
+      const competPseudoInput = document.getElementById('compet-pseudo');
+      const competPasswordInput = document.getElementById('compet-password');
+      const competBtn = document.getElementById('compet-play-btn');
+      if (!competEmailInput || !competPasswordInput || !competBtn) return;
+      const email = competEmailInput.value.trim();
+      const pseudo = (competPseudoInput ? competPseudoInput.value : '').trim();
+      const password = competPasswordInput.value;
+      const valid = isValidEmail(email) &&
+        password.length >= 6 &&
+        (competitionAuthMode === 'login' || pseudo.length >= 3);
+      if (valid) {
+        competBtn.removeAttribute('disabled');
+      } else {
+        competBtn.setAttribute('disabled', 'disabled');
+      }
+    }
+
+    async function performCompetitionAuth(mode, payload) {
+      const endpoint = mode === 'login' ? '/api/auth/login' : '/api/auth/register';
+      const response = await fetch(`${COMPET_API_BASE}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur d\'authentification.');
+      }
+      return data;
+    }
+
+    async function startCompetitionMode() {
+      const competEmailInput = document.getElementById('compet-email');
+      const competPseudoInput = document.getElementById('compet-pseudo');
+      const competPasswordInput = document.getElementById('compet-password');
+      const competBtn = document.getElementById('compet-play-btn');
+      const hint = document.getElementById('compet-account-hint');
+      const email = (competEmailInput ? competEmailInput.value : '').trim().toLowerCase();
+      const pseudo = (competPseudoInput ? competPseudoInput.value : '').trim();
+      const password = competPasswordInput ? competPasswordInput.value : '';
+
+      if (!isValidEmail(email)) {
+        if (hint) hint.textContent = 'Email invalide.';
+        updateCompetitionButtonState();
+        return;
+      }
+      if (competitionAuthMode === 'register' && pseudo.length < 3) {
+        if (hint) hint.textContent = 'Pseudo trop court (minimum 3 caractères).';
+        updateCompetitionButtonState();
+        return;
+      }
+      if (password.length < 6) {
+        if (hint) hint.textContent = 'Mot de passe trop court (minimum 6 caractères).';
+        updateCompetitionButtonState();
+        return;
+      }
+
+      if (competBtn) competBtn.setAttribute('disabled', 'disabled');
+      if (hint) hint.textContent = competitionAuthMode === 'login' ? 'Connexion en cours...' : 'Création du compte...';
+
+      try {
+        const data = await performCompetitionAuth(competitionAuthMode, { email, pseudo, password });
+        competitionAccount = {
+          id: data.account.id,
+          pseudo: data.account.pseudo,
+          email: data.account.email,
+          token: data.token,
+          createdAt: data.account.createdAt
+        };
+        saveCompetitionAccount(competitionAccount);
+        if (hint) hint.textContent = competitionAuthMode === 'login'
+          ? `Connecté: ${competitionAccount.pseudo}`
+          : `Compte créé: ${competitionAccount.pseudo}`;
+        if (competPseudoInput) competPseudoInput.value = competitionAccount.pseudo;
+        if (competPasswordInput) competPasswordInput.value = '';
+        refreshCompetitionUiText();
+        startGame('compet');
+      } catch (error) {
+        const msg = error && error.message ? error.message : 'Erreur inconnue.';
+        if (hint) {
+          if (msg.includes('Failed to fetch')) {
+            hint.textContent = 'API indisponible. Lance le serveur local: node server.js';
+          } else {
+            hint.textContent = msg;
+          }
+        }
+      } finally {
+        updateCompetitionButtonState();
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const pseudoInput = document.getElementById('guest-pseudo');
+      const playBtn = document.getElementById('guest-play-btn');
+      const competEmailInput = document.getElementById('compet-email');
+      const competPseudoInput = document.getElementById('compet-pseudo');
+      const competPasswordInput = document.getElementById('compet-password');
+      const competHint = document.getElementById('compet-account-hint');
+
+      competitionAccount = loadCompetitionAccount();
+      guestProgress = loadGuestProgress();
+      refreshGuestInfosPanel();
+      if (competitionAccount) {
+        if (competPseudoInput) competPseudoInput.value = competitionAccount.pseudo;
+        if (competEmailInput) competEmailInput.value = competitionAccount.email || '';
+        if (competHint) competHint.textContent = `Compte trouvé: ${competitionAccount.pseudo} (${competitionAccount.email})`;
+      }
+
+      if (pseudoInput && playBtn) {
+        if (guestProgress && guestProgress.pseudo) {
+          pseudoInput.value = guestProgress.pseudo;
+          playBtn.disabled = pseudoInput.value.trim().length === 0;
+          refreshGuestInfosPanel();
+        }
+        pseudoInput.addEventListener('input', () => {
+          playBtn.disabled = pseudoInput.value.trim().length === 0;
+        });
+        pseudoInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && pseudoInput.value.trim().length > 0) startGame('guest');
+        });
+      }
+
+      if (competEmailInput) {
+        competEmailInput.addEventListener('input', () => updateCompetitionButtonState());
+        competEmailInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') startCompetitionMode();
+        });
+      }
+      if (competPseudoInput) {
+        competPseudoInput.addEventListener('input', () => updateCompetitionButtonState());
+        competPseudoInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') startCompetitionMode();
+        });
+      }
+      if (competPasswordInput) {
+        competPasswordInput.addEventListener('input', () => updateCompetitionButtonState());
+        competPasswordInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') startCompetitionMode();
+        });
+      }
+      setCompetAuthMode('register');
+      setTimeout(() => updateCompetitionButtonState(), 50);
+    });
+
+    function startGame(mode) {
+      gameMode = mode;
+      if (mode === 'compet') {
+        const competPseudoInput = document.getElementById('compet-pseudo');
+        playerPseudo = (competPseudoInput ? competPseudoInput.value : '').trim() ||
+          (competitionAccount ? competitionAccount.pseudo : '') || 'Competiteur';
+      } else {
+        playerPseudo = document.getElementById('guest-pseudo').value.trim() || 'Joueur';
+        if (!guestProgress) guestProgress = loadGuestProgress();
+        guestProgress.pseudo = playerPseudo;
+        saveGuestProgress(guestProgress);
+      }
+      document.getElementById('menu-screen').style.display = 'none';
+      document.getElementById('controls-toggle-btn').style.display = 'none';
+      document.getElementById('controls-panel').style.display = 'none';
+      document.getElementById('game-container').style.display = 'block';
+      if (!bgMusic) {
+        bgMusic = new Audio(GAME_MUSIC_PATH);
+        bgMusic.loop = true;
+        bgMusic.volume = 0.35;
+      }
+      bgMusic.play().catch(() => {
+        // Ignore autoplay/file access errors and continue game startup.
+      });
+      game = new Phaser.Game(config);
+      window.addEventListener('resize', () => game.scale.resize(window.innerWidth, window.innerHeight));
+    }
+
+    const GAME_WIDTH = window.innerWidth || 960;
+    const GAME_HEIGHT = window.innerHeight || 540;
+    const WORLD_WIDTH = 7000;
+    const WORLD_HEIGHT = 7000;
+
+    const BASE_SPEED = 260;
+    const HOLDER_SLOW_FACTOR = 0.95;
+    const BOOST_MULTIPLIER = 2.0;
+    const BOOST_DURATION = 3000;
+    const ENERGY_MAX = 100;
+    const PLAYER_RADIUS = 18;
+    const HOLDER_SCALE = 1.5;
+    const CROWN_RADIUS = 14;
+    const TIMER_START = 120;
+    const REPLAY_BUFFER_MS = 10000;
+
+    const IMMUNITY_DURATION = 1000;
+    const SHOCKWAVE_RADIUS = 250;
+    const SHOCKWAVE_FORCE = 900;
+    const GAME_MUSIC_PATH = 'assets/audio/bgm.mp3';
+    const END_SECOND_SOUND_PATH = 'assets/audio/end-second.m4a';
+    const PLAYER_KING_SOUND_PATH = 'assets/audio/player-king.mp3';
+    const PLAYER_BOX_SOUND_PATH = 'assets/audio/box-pickup.mp3';
+    const TOTAL_PLAYERS = 18;
+    const BOT_COUNT = TOTAL_PLAYERS - 1;
+
+    const BOT_COLORS = [
+      0xff0088, 0xff4444, 0x44aaff, 0xff8800, 0xaa44ff, 0x44ffaa,
+      0xffff44, 0xff44aa, 0x44ffff, 0xaaff44, 0xff6644, 0x88ddff,
+      0xffaa55, 0xcc66ff, 0x66ffcc, 0xff6677, 0x99ff66
+    ];
+    const BOT_PROFILES = [
+      { key: 'cautious', farmOffset: 16, contestMargin: 8, attackEnergyGate: 34, boxRange: 1400, crownBoostMin: 26, boostBurst: 300, rageDist: 340, alwaysPressure: false, kingEscapeDist: 420, kingEscapeEnergy: 24 },
+      { key: 'balanced', farmOffset: -2, contestMargin: -10, attackEnergyGate: 22, boxRange: 1000, crownBoostMin: 16, boostBurst: 380, rageDist: 470, alwaysPressure: false, kingEscapeDist: 340, kingEscapeEnergy: 18 },
+      { key: 'aggressive', farmOffset: -12, contestMargin: -18, attackEnergyGate: 16, boxRange: 700, crownBoostMin: 10, boostBurst: 520, rageDist: 620, alwaysPressure: true, kingEscapeDist: 320, kingEscapeEnergy: 14 },
+      { key: 'berserker', farmOffset: -18, contestMargin: -24, attackEnergyGate: 10, boxRange: 600, crownBoostMin: 8, boostBurst: 620, rageDist: 700, alwaysPressure: true, kingEscapeDist: 260, kingEscapeEnergy: 10 },
+      { key: 'defensive', farmOffset: 6, contestMargin: 0, attackEnergyGate: 28, boxRange: 1200, crownBoostMin: 20, boostBurst: 320, rageDist: 390, alwaysPressure: false, kingEscapeDist: 460, kingEscapeEnergy: 26 },
+      { key: 'farmer', farmOffset: 10, contestMargin: 2, attackEnergyGate: 30, boxRange: 1250, crownBoostMin: 22, boostBurst: 300, rageDist: 360, alwaysPressure: false, kingEscapeDist: 430, kingEscapeEnergy: 24 },
+      { key: 'opportunist', farmOffset: -4, contestMargin: -6, attackEnergyGate: 20, boxRange: 1450, crownBoostMin: 14, boostBurst: 420, rageDist: 540, alwaysPressure: false, kingEscapeDist: 360, kingEscapeEnergy: 16 }
+    ];
+    const BOT_BASE_NAMES = [
+      'leo','luna','max','nina','milo','zoe','adam','sarah','noah','emma',
+      'kael','lya','yuki','axel','mehdi','sofia','tom','eva','nora','enzo',
+      'kylian','ines','hugo','maya','liam','jade','nathan','camille','sam',
+      'alex','kira','yanis','clara','ilo','mael','margot'
+    ];
+    const BOT_LONG_NAMES = [
+      'nightwalker','shadowhunter','pixelwizard','moonstriker','silentrunner',
+      'stormkeeper','goldenfalcon','frostknight','darkvoyager','neondrifter',
+      'speedmaster','wildranger','cybernomad','lonewolf','starseeker'
+    ];
+    let botNameSeed = 0;
+    try {
+      botNameSeed = Number(localStorage.getItem('crown-chase-bot-seed') || '0');
+      if (!Number.isFinite(botNameSeed) || botNameSeed < 0) botNameSeed = 0;
+    } catch (_e) {
+      botNameSeed = 0;
+    }
+
+    function capitalize(s) {
+      if (!s) return s;
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+
+    function seedToLetters(n) {
+      let v = Math.max(1, n);
+      let out = '';
+      while (v > 0) {
+        const idx = (v - 1) % 26;
+        out = String.fromCharCode(97 + idx) + out;
+        v = Math.floor((v - 1) / 26);
+      }
+      return out;
+    }
+
+    function nextUniqueBotName() {
+      botNameSeed += 1;
+      try {
+        localStorage.setItem('crown-chase-bot-seed', String(botNameSeed));
+      } catch (_e) {
+        // Keep in-memory fallback if storage is unavailable.
+      }
+      const n = botNameSeed;
+      const base = BOT_BASE_NAMES[(n * 7 + 3) % BOT_BASE_NAMES.length];
+      const base2 = BOT_BASE_NAMES[(n * 11 + 5) % BOT_BASE_NAMES.length];
+      const long = BOT_LONG_NAMES[(n * 13 + 1) % BOT_LONG_NAMES.length];
+      const digits = String((n * 97) % 1000).padStart(2, '0');
+      const letters = seedToLetters(n);
+      const style = n % 8;
+
+      if (style === 0) return `${base}${digits}`;                     // leo42
+      if (style === 1) return capitalize(base);                       // Luna
+      if (style === 2) return `${base}_${base2}`;                     // max_nina
+      if (style === 3) return `${capitalize(base)}${capitalize(base2)}`; // LeoNina
+      if (style === 4) return `${base}.${digits}`;                    // milo.07
+      if (style === 5) return `${long}${letters}`;                    // nightwalkerab
+      if (style === 6) return `${capitalize(long)}${digits}`;         // Nightwalker84
+      return `${base}${letters}`;                                     // emmaac
+    }
+
+    const config = {
+      type: Phaser.AUTO,
+      width: GAME_WIDTH, height: GAME_HEIGHT,
+      backgroundColor: '#020814',
+      parent: 'game-container',
+      physics: { default: 'arcade', arcade: { debug: false } },
+      scene: { preload, create, update }
+    };
+
+    let game;
+    let bgMusic = null;
+    let lastFakeLobbyDurationMs = 0;
+
+    function preload() {}
+
+    function create() {
+      const scene = this;
+      setupReplayRecorder(scene);
+      scene.events.once('shutdown', () => cleanupReplayRecorder(scene));
+      scene.events.once('destroy', () => cleanupReplayRecorder(scene));
+
+      const grid = this.add.grid(WORLD_WIDTH/2, WORLD_HEIGHT/2, WORLD_WIDTH, WORLD_HEIGHT,
+        40, 40, 0x020814, 1, 0x0b2a4a, 0.3);
+      grid.setDepth(-10);
+      this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+      // --- Palais ---
+      scene.palaceGlow = this.add.circle(WORLD_WIDTH/2, WORLD_HEIGHT/2, 174, 0xffd700, 0.1);
+      scene.palace = this.add.circle(WORLD_WIDTH/2, WORLD_HEIGHT/2, 150);
+      scene.palace.setStrokeStyle(4, 0xffd700, 1);
+      scene.palace.setFillStyle(0x000000, 0);
+      scene.palace.setDepth(1);
+
+      // --- Joueur humain (placé en cercle avec les bots) ---
+      const spawnRadius = 1200;
+      const totalPlayers = TOTAL_PLAYERS;
+      const playerAngle = 0;
+      const px = WORLD_WIDTH/2 + Math.cos(playerAngle) * spawnRadius;
+      const py = WORLD_HEIGHT/2 + Math.sin(playerAngle) * spawnRadius;
+      scene.player = this.add.circle(px, py, PLAYER_RADIUS, 0x00ffe0);
+      scene.playerGlow = this.add.circle(scene.player.x, scene.player.y, PLAYER_RADIUS+8, 0x00ffe0, 0.15);
+      scene.playerNameText = this.add.text(scene.player.x, scene.player.y, playerPseudo, {
+        fontSize: '12px', fontStyle: 'bold', fontFamily: 'Arial',
+        color: '#ffffff', resolution: 4
+      }).setOrigin(0.5).setDepth(10);
+      this.physics.add.existing(scene.player);
+      scene.player.body.setCircle(PLAYER_RADIUS);
+      scene.player.body.setCollideWorldBounds(true);
+
+      // --- Bots ---
+      scene.bots = [];
+      for (let i = 0; i < BOT_COUNT; i++) {
+        const angle = ((i + 1) / totalPlayers) * Math.PI * 2;
+        const x = Phaser.Math.Clamp(WORLD_WIDTH/2 + Math.cos(angle)*spawnRadius, 60, WORLD_WIDTH-60);
+        const y = Phaser.Math.Clamp(WORLD_HEIGHT/2 + Math.sin(angle)*spawnRadius, 60, WORLD_HEIGHT-60);
+        const color = BOT_COLORS[i % BOT_COLORS.length];
+        const botName = nextUniqueBotName();
+
+        const circle = this.add.circle(x, y, PLAYER_RADIUS, color);
+        const glow = this.add.circle(x, y, PLAYER_RADIUS+8, color, 0.15);
+        const nameText = this.add.text(x, y, botName, {
+          fontSize: '12px', fontStyle: 'bold', fontFamily: 'Arial',
+          color: '#ffffff', resolution: 4
+        }).setOrigin(0.5).setDepth(10);
+        this.physics.add.existing(circle);
+        circle.body.setCircle(PLAYER_RADIUS);
+        circle.body.setCollideWorldBounds(true);
+
+        scene.bots.push({
+          id: 'bot_' + i,
+          circle, glow, nameText, color,
+          name: botName,
+          aiProfile: BOT_PROFILES[i % BOT_PROFILES.length],
+          aiChargeBeforeAttack: Math.random() < 0.9,
+          energy: 0,
+          pelletCount: 0,
+          knockbackX: 0, knockbackY: 0,
+          boostActive: false,
+          boostCommitUntil: 0,
+          storedPowerUp: null,
+          holdTime: 0,
+          aiDirX: Math.random()-0.5,
+          aiDirY: Math.random()-0.5,
+          aiJitter: Math.random() * 0.4 + 0.8,
+          aiPhase: 'farm',
+          aiFarmThreshold: 35 + Math.random() * 30,
+          aiDecisionTimer: 0,
+          aiUseBoxTimer: 0,
+          score: 0,
+          pelletsCollected: 0
+        });
+      }
+
+      // --- Contour doré porteur ---
+      scene.holderRing = this.add.circle(0, 0, PLAYER_RADIUS);
+      scene.holderRing.setStrokeStyle(3, 0xffd700, 1);
+      scene.holderRing.setFillStyle(0x000000, 0);
+      scene.holderRing.setVisible(false);
+      scene.holderRing.setDepth(600);
+
+      // --- Aura d'immunité permanente du porteur ---
+      scene.immunityAura = this.add.circle(0, 0, PLAYER_RADIUS);
+      scene.immunityAura.setStrokeStyle(2, 0xffd700, 0.35);
+      scene.immunityAura.setFillStyle(0xffd700, 0.04);
+      scene.immunityAura.setVisible(false);
+      scene.immunityAura.setDepth(599);
+
+      // --- Couronne ---
+      scene.crown = this.add.text(WORLD_WIDTH/2, WORLD_HEIGHT/2, '♕', {
+        fontSize: '66px', fontFamily: 'Arial', color: '#ffd700', resolution: 2
+      }).setOrigin(0.5);
+      this.physics.add.existing(scene.crown);
+      scene.crown.body.setCircle(CROWN_RADIUS, scene.crown.width/2 - CROWN_RADIUS, scene.crown.height/2 - CROWN_RADIUS);
+      scene.crown.body.setImmovable(true);
+
+      scene.crownIcon = this.add.text(0, 0, '♕', {
+        fontSize: '54px', fontFamily: 'Arial', color: '#ffd700', resolution: 2
+      }).setOrigin(0.5).setVisible(false).setDepth(601);
+
+      scene.crownTransferIcon = this.add.text(0, 0, '♕', {
+        fontSize: '48px', fontFamily: 'Arial', color: '#ffd700', resolution: 2
+      }).setOrigin(0.5).setVisible(false).setDepth(602);
+
+      scene.powerUpFloatIcons = {};
+
+      scene.holderNameText = this.add.text(0, 0, '', {
+        fontSize: '18px', fontStyle: 'bold', fontFamily: 'Arial',
+        color: '#39ff14', stroke: '#000000', strokeThickness: 3, resolution: 4
+      }).setOrigin(0.5, 0).setVisible(false).setDepth(603);
+
+      // --- État ---
+      scene.crownHolder = null;
+      scene.playerHoldTime = 0;
+      scene.energy = 0;
+      scene.playerPelletCount = 0;
+      scene.playerKnockbackX = 0;
+      scene.playerKnockbackY = 0;
+      scene.playerMoveDirX = 1;
+      scene.playerMoveDirY = 0;
+      scene.boostActive = false;
+      scene.lastTime = 0;
+      scene.crownImmunityUntil = 0;
+      scene.pendingChallengers = [];
+      scene.auraShieldBroken = false;
+      scene.mysteryBoxActive = false;
+      scene.mysteryBoxSpawnAt = 0;
+      scene.playerStoredPowerUp = null;
+      scene._rouletteRunning = false;
+      scene.activePowerUps = {};
+      scene.playerScore = 0;
+      scene.playerPelletsCollected = 0;
+      scene.firstCrownGrabbed = false;
+      scene.legendaryKing = false;
+      scene.crownHoldStart = 0;
+      scene.endSecondSoundPlayed = false;
+      scene._totalXP = gameMode === 'guest' && guestProgress ? (guestProgress.totalXP || 0) : 0;
+
+      // --- Carré magique (mystery box) au centre du palais ---
+      const mcx = WORLD_WIDTH / 2, mcy = WORLD_HEIGHT / 2;
+      scene.mysteryBoxGlow = this.add.rectangle(mcx, mcy, 155, 155);
+      scene.mysteryBoxGlow.setStrokeStyle(5, 0xffcc00, 0.4);
+      scene.mysteryBoxGlow.setFillStyle(0xffaa00, 0.08);
+      scene.mysteryBoxGlow.setDepth(4).setVisible(false);
+
+      scene.mysteryBox = this.add.rectangle(mcx, mcy, 125, 125);
+      scene.mysteryBox.setStrokeStyle(6, 0xffaa00, 1);
+      scene.mysteryBox.setFillStyle(0xff8800, 0.35);
+      scene.mysteryBox.setDepth(5).setVisible(false);
+
+      scene.mysteryBoxText = this.add.text(mcx, mcy, '?', {
+        fontSize: '95px', fontStyle: 'bold', color: '#ffffff',
+        fontFamily: 'Arial', resolution: 2
+      }).setOrigin(0.5).setDepth(5).setVisible(false);
+
+      scene.mysteryBoxHitbox = this.add.circle(mcx, mcy, 70, 0x000000, 0);
+      this.physics.add.existing(scene.mysteryBoxHitbox);
+      scene.mysteryBoxHitbox.body.setCircle(70);
+      scene.mysteryBoxHitbox.body.setImmovable(true);
+      scene.mysteryBoxHitbox.body.enable = false;
+
+      // --- Wild box (caisse aléatoire sur la map) ---
+      scene.wildBoxActive = false;
+      scene.wildBoxSpawnAt = scene.time.now + 10000 + Math.random() * 5000;
+
+      scene.wildBoxGlow = this.add.rectangle(0, 0, 155, 155);
+      scene.wildBoxGlow.setStrokeStyle(5, 0x44aaff, 0.4);
+      scene.wildBoxGlow.setFillStyle(0x2288ff, 0.08);
+      scene.wildBoxGlow.setDepth(4).setVisible(false);
+
+      scene.wildBox = this.add.rectangle(0, 0, 125, 125);
+      scene.wildBox.setStrokeStyle(6, 0x44aaff, 1);
+      scene.wildBox.setFillStyle(0x2266cc, 0.35);
+      scene.wildBox.setDepth(5).setVisible(false);
+
+      scene.wildBoxText = this.add.text(0, 0, '?', {
+        fontSize: '95px', fontStyle: 'bold', color: '#88ccff',
+        fontFamily: 'Arial', resolution: 2
+      }).setOrigin(0.5).setDepth(5).setVisible(false);
+
+      scene.wildBoxHitbox = this.add.circle(0, 0, 70, 0x000000, 0);
+      this.physics.add.existing(scene.wildBoxHitbox);
+      scene.wildBoxHitbox.body.setCircle(70);
+      scene.wildBoxHitbox.body.setImmovable(true);
+      scene.wildBoxHitbox.body.enable = false;
+      scene.bonusBoxes = [];
+      scene.lateBonusSpawned = false;
+
+      // --- Croix brise-bouclier (moulins violets) ---
+      scene.crosses = [];
+      const CROSS_ARM = 40;
+      const CROSS_THICK = 10;
+      const crossMargin = 600;
+      const crossPositions = [
+        { x: crossMargin, y: crossMargin },
+        { x: WORLD_WIDTH - crossMargin, y: crossMargin },
+        { x: crossMargin, y: WORLD_HEIGHT - crossMargin },
+        { x: WORLD_WIDTH - crossMargin, y: WORLD_HEIGHT - crossMargin },
+        { x: Phaser.Math.Between(1200, WORLD_WIDTH-1200), y: Phaser.Math.Between(1200, WORLD_HEIGHT-1200) },
+        { x: Phaser.Math.Between(1200, WORLD_WIDTH-1200), y: Phaser.Math.Between(1200, WORLD_HEIGHT-1200) },
+        { x: Phaser.Math.Between(1200, WORLD_WIDTH-1200), y: Phaser.Math.Between(1200, WORLD_HEIGHT-1200) },
+        { x: Phaser.Math.Between(1200, WORLD_WIDTH-1200), y: Phaser.Math.Between(1200, WORLD_HEIGHT-1200) },
+        { x: Phaser.Math.Between(1200, WORLD_WIDTH-1200), y: Phaser.Math.Between(1200, WORLD_HEIGHT-1200) },
+        { x: Phaser.Math.Between(1200, WORLD_WIDTH-1200), y: Phaser.Math.Between(1200, WORLD_HEIGHT-1200) },
+        { x: Phaser.Math.Between(1200, WORLD_WIDTH-1200), y: Phaser.Math.Between(1200, WORLD_HEIGHT-1200) },
+        { x: Phaser.Math.Between(1200, WORLD_WIDTH-1200), y: Phaser.Math.Between(1200, WORLD_HEIGHT-1200) },
+        { x: Phaser.Math.Between(1200, WORLD_WIDTH-1200), y: Phaser.Math.Between(1200, WORLD_HEIGHT-1200) }
+      ];
+      crossPositions.forEach(pos => {
+        const glow = this.add.graphics();
+        glow.fillStyle(0xbb33ff, 0.12);
+        glow.fillRect(-CROSS_ARM-6, -CROSS_THICK/2-6, (CROSS_ARM+6)*2, CROSS_THICK+12);
+        glow.fillRect(-CROSS_THICK/2-6, -CROSS_ARM-6, CROSS_THICK+12, (CROSS_ARM+6)*2);
+        glow.x = pos.x; glow.y = pos.y; glow.setDepth(2);
+
+        const g = this.add.graphics();
+        g.fillStyle(0xcc44ff, 1);
+        g.fillRect(-CROSS_ARM, -CROSS_THICK/2, CROSS_ARM*2, CROSS_THICK);
+        g.fillRect(-CROSS_THICK/2, -CROSS_ARM, CROSS_THICK, CROSS_ARM*2);
+        g.x = pos.x; g.y = pos.y; g.setDepth(3);
+
+        const hitbox = this.add.circle(pos.x, pos.y, CROSS_ARM, 0x000000, 0);
+        this.physics.add.existing(hitbox);
+        hitbox.body.setCircle(CROSS_ARM);
+        hitbox.body.setImmovable(true);
+        hitbox.body.setAllowGravity(false);
+
+        scene.crosses.push({ graphic: g, glow, hitbox });
+      });
+
+      // (détection bouclier <-> croix gérée dans update)
+
+      // --- Billes ---
+      scene.pelletGroup = this.physics.add.group();
+
+      // --- Overlaps couronne ---
+      this.physics.add.overlap(scene.player, scene.crown, () => pickUpCrown(scene, 'player'));
+      scene.bots.forEach(b => {
+        this.physics.add.overlap(b.circle, scene.crown, () => pickUpCrown(scene, b.id));
+      });
+
+      // --- Overlaps mystery box ---
+      this.physics.add.overlap(scene.player, scene.mysteryBoxHitbox, () => collectMysteryBox(scene, 'player', 'palace'));
+      scene.bots.forEach(b => {
+        this.physics.add.overlap(b.circle, scene.mysteryBoxHitbox, () => collectMysteryBox(scene, b.id, 'palace'));
+      });
+
+      // --- Overlaps wild box ---
+      this.physics.add.overlap(scene.player, scene.wildBoxHitbox, () => collectMysteryBox(scene, 'player', 'wild'));
+      scene.bots.forEach(b => {
+        this.physics.add.overlap(b.circle, scene.wildBoxHitbox, () => collectMysteryBox(scene, b.id, 'wild'));
+      });
+
+      // --- Overlaps billes ---
+      this.physics.add.overlap(scene.player, scene.pelletGroup, (_p, pel) => collectPellet(scene, pel, 'player'));
+      scene.bots.forEach(b => {
+        this.physics.add.overlap(b.circle, scene.pelletGroup, (_c, pel) => collectPellet(scene, pel, b.id));
+      });
+
+      // --- Collisions joueur <-> bots ---
+      scene.bots.forEach(b => {
+        this.physics.add.collider(scene.player, b.circle,
+          () => handleTagGeneric(scene, 'player', b.id),
+          () => {
+            if (scene.crownHolder !== 'player' && scene.crownHolder !== b.id) return false;
+            if (isRaging(scene, 'player') || isRaging(scene, b.id)) return false;
+            if (scene.boostActive && scene.crownHolder !== b.id) return false;
+            if (b.boostActive && scene.crownHolder !== 'player') return false;
+            return true;
+          }
+        );
+      });
+
+      // --- Collisions bot <-> bot ---
+      for (let i = 0; i < scene.bots.length; i++) {
+        for (let j = i+1; j < scene.bots.length; j++) {
+          const bi = scene.bots[i], bj = scene.bots[j];
+          this.physics.add.collider(bi.circle, bj.circle,
+            () => handleTagGeneric(scene, bi.id, bj.id),
+            () => {
+              if (scene.crownHolder !== bi.id && scene.crownHolder !== bj.id) return false;
+              if (isRaging(scene, bi.id) || isRaging(scene, bj.id)) return false;
+              if (bi.boostActive && scene.crownHolder !== bj.id) return false;
+              if (bj.boostActive && scene.crownHolder !== bi.id) return false;
+              return true;
+            }
+          );
+        }
+      }
+
+      // --- Contrôles ---
+      scene.pointer = this.input.activePointer;
+      scene.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+
+      this.input.on('pointerdown', function (pointer) {
+        if (!pointer.leftButtonDown()) return;
+        if (scene._rouletteRunning) return;
+        if (scene.playerStoredPowerUp) {
+          const effect = scene.playerStoredPowerUp;
+          scene.playerStoredPowerUp = null;
+          activatePowerUp(scene, 'player', effect);
+        }
+      });
+
+      // --- HUD ---
+      const barX = 36;
+      const barBottom = GAME_HEIGHT - 70;
+      const barTop = barBottom - GAME_HEIGHT * 0.5;
+      const barHeight = barBottom - barTop;
+      const barWidth = 22;
+
+      scene.energyBarBg = this.add.rectangle(barX, barTop+barHeight/2, barWidth, barHeight, 0x111827)
+        .setOrigin(0.5).setScrollFactor(0).setDepth(800);
+      scene.energyBarBorder = this.add.rectangle(barX, barTop+barHeight/2, barWidth, barHeight)
+        .setOrigin(0.5).setStrokeStyle(2, 0x22c55e, 0.8).setScrollFactor(0).setDepth(800);
+      scene.energyBarFill = this.add.rectangle(barX, barBottom-2, barWidth-4, 0, 0x22c55e)
+        .setOrigin(0.5, 1).setScrollFactor(0).setDepth(801);
+      scene.energyBolt = this.add.text(barX, barTop-28, '⚡', {
+        fontSize: '40px', fontFamily: 'Segoe UI Emoji'
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(800);
+      scene.energyPercent = this.add.text(barX, barBottom+28, '0', {
+        fontSize: '42px', fontStyle: 'bold', color: '#ff4b4b', fontFamily: 'Arial', resolution: 2
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(800);
+      scene._barTop = barTop; scene._barBottom = barBottom;
+      scene._barHeight = barHeight;
+
+      // --- HUD Power-up (carré bas-droite) ---
+      const puX = GAME_WIDTH - 55, puY = GAME_HEIGHT - 55;
+      scene.powerUpBox = this.add.rectangle(puX, puY, 64, 64);
+      scene.powerUpBox.setStrokeStyle(3, 0xaaaaaa, 0.7);
+      scene.powerUpBox.setFillStyle(0x000000, 0);
+      scene.powerUpBox.setScrollFactor(0).setDepth(802);
+      scene.powerUpIcon = this.add.text(puX, puY, '', {
+        fontSize: '36px', fontFamily: 'Segoe UI Emoji, Arial', resolution: 2
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(803);
+      scene._puX = puX; scene._puY = puY;
+      scene.playerPowerUpUntil = 0;
+
+      scene.timeLeft = TIMER_START;
+      scene.timerText = this.add.text(90, 50, scene.timeLeft.toString(), {
+        fontSize: '72px', color: '#e5e7eb', fontStyle: 'bold', fontFamily: 'Arial', resolution: 2
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(802);
+
+      scene.legendaryHud = this.add.text(GAME_WIDTH / 2, 95, '👑 ROI LÉGENDAIRE  ×2', {
+        fontSize: '20px', fontStyle: 'bold', color: '#ffa500',
+        fontFamily: 'Arial', stroke: '#000000', strokeThickness: 4, resolution: 2
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(803).setVisible(false);
+
+      scene.targetPelletCount = 1000;
+      this.time.addEvent({ delay: 1000, loop: true, callback: () => {
+        if (!scene.gameStarted) return;
+        if (scene.timeLeft <= 0) return;
+        scene.timeLeft--;
+        if (scene.timeLeft <= Math.floor(REPLAY_BUFFER_MS / 1000)) startFinalReplayCapture(scene);
+        scene.timerText.setText(scene.timeLeft.toString());
+        if (scene.crownHolder) {
+          if (!scene.legendaryKing && scene.crownHoldStart > 0 && scene.time.now - scene.crownHoldStart >= 20000) {
+            scene.legendaryKing = true;
+            const hc = getCircle(scene, scene.crownHolder);
+            if (hc) {
+              const txt = scene.add.text(hc.x, hc.y - 70, '👑 ROI LÉGENDAIRE ! x2', {
+                fontSize: '22px', fontStyle: 'bold', color: '#ffd700',
+                fontFamily: 'Arial', stroke: '#000000', strokeThickness: 5, resolution: 2
+              }).setOrigin(0.5).setDepth(700);
+              scene.tweens.add({
+                targets: txt, y: hc.y - 140, alpha: 0,
+                duration: 2000, ease: 'Quad.easeOut',
+                onComplete: () => txt.destroy()
+              });
+            }
+          }
+          const pts = scene.legendaryKing ? 20 : 10;
+          addScore(scene, scene.crownHolder, pts);
+        }
+        if (scene.timeLeft <= 0) {
+          if (!scene.endSecondSoundPlayed) {
+            scene.endSecondSoundPlayed = true;
+            const endSecondSound = new Audio(END_SECOND_SOUND_PATH);
+            endSecondSound.volume = 0.9;
+            endSecondSound.play().catch(() => {
+              // Ignore playback issues and continue end-game flow.
+            });
+          }
+          endGame(scene);
+          return;
+        }
+        let target = 1000;
+        if (scene.timeLeft <= 30) {
+          target = 1000;
+          if (!scene.lateBonusSpawned) {
+            spawnLateGameBonusBoxes(scene, 5);
+            scene.lateBonusSpawned = true;
+          }
+        }
+        if (target !== scene.targetPelletCount) {
+          const diff = target - scene.targetPelletCount;
+          for (let i = 0; i < diff; i++) spawnPellet(scene);
+          scene.targetPelletCount = target;
+        }
+      }});
+
+      scene.targetLabel = this.add.text(GAME_WIDTH-20, 14, 'King', {
+        fontSize: '36px', fontStyle: 'bold', color: '#e5e7eb', fontFamily: 'Arial', resolution: 2
+      }).setOrigin(1,0).setScrollFactor(0).setDepth(802);
+      scene.targetName = this.add.text(GAME_WIDTH-20, 52, '—', {
+        fontSize: '36px', fontStyle: 'bold', color: '#39ff14', fontFamily: 'Arial', resolution: 2
+      }).setOrigin(1,0).setScrollFactor(0).setDepth(802);
+
+      // --- Leaderboard ---
+      const lbW = 200, lbX = GAME_WIDTH - 20, lbY = Math.round(GAME_HEIGHT / 2 - 140);
+      scene._lbY = lbY;
+      scene.lbBg = this.add.rectangle(lbX - lbW/2, lbY + 120, lbW, 280, 0x000000, 0.35)
+        .setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(801);
+      scene.lbTitle = this.add.text(lbX - lbW/2, lbY - 16, 'Top 10 Joueurs', {
+        fontSize: '22px', fontStyle: 'bold', color: '#e5e7eb', fontFamily: 'Arial', resolution: 2
+      }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(802);
+      scene.lbRows = [];
+      for (let i = 0; i < 10; i++) {
+        const row = this.add.text(lbX, lbY + 22 + i * 22, '', {
+          fontSize: '13px', color: '#ffffff', fontFamily: 'Arial', resolution: 2
+        }).setOrigin(1, 0).setScrollFactor(0).setDepth(802);
+        scene.lbRows.push(row);
+      }
+
+      const cam = this.cameras.main;
+      cam.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+      cam.startFollow(scene.player, true, 0.1, 0.1);
+
+      scene.crownArrow = this.add.triangle(GAME_WIDTH/2, GAME_HEIGHT/2, 0,-16, 16,16, -16,16, 0xfff3b0);
+      scene.crownArrow.setOrigin(0.5).setDepth(802).setScrollFactor(0).setVisible(false);
+
+      for (let i = 0; i < 1000; i++) spawnPellet(scene, true);
+
+      // --- Faux matchmaking + décompte ---
+      scene.gameStarted = false;
+
+      const cx = GAME_WIDTH / 2, cy = GAME_HEIGHT / 2;
+      const fakeTargetPlayers = 20;
+      let fakeConnected = 1;
+
+      const waitingTitle = this.add.text(cx, cy - 40, "Attente d'autres joueurs...", {
+        fontSize: '42px', fontStyle: 'bold', color: '#ffd700',
+        fontFamily: 'Arial', stroke: '#000000', strokeThickness: 6, resolution: 2
+      }).setOrigin(0.5).setDepth(999).setScrollFactor(0).setAlpha(0.9);
+
+      const waitingCount = this.add.text(cx, cy + 18, `${fakeConnected}/${fakeTargetPlayers}`, {
+        fontSize: '56px', fontStyle: 'bold', color: '#e5e7eb',
+        fontFamily: 'Arial', stroke: '#000000', strokeThickness: 6, resolution: 2
+      }).setOrigin(0.5).setDepth(999).setScrollFactor(0).setAlpha(0.95);
+
+      const countdownNum = this.add.text(cx, cy, '3', {
+        fontSize: '280px', fontStyle: 'bold', color: '#ffd700',
+        fontFamily: 'Arial', stroke: '#000000', strokeThickness: 6, resolution: 2
+      }).setOrigin(0.5).setDepth(999).setScrollFactor(0).setAlpha(0);
+
+      const launchCountdown = (baseDelay) => {
+        const showNum = (val, delay) => {
+          this.time.delayedCall(baseDelay + delay, () => {
+            countdownNum.setText(val).setAlpha(0.35).setScale(2.5).setRotation(0).setColor('#ffd700').setFontSize(280);
+            scene.tweens.add({ targets: countdownNum, scale: 1, alpha: 0.3, duration: 500, ease: 'Cubic.easeOut' });
+            scene.tweens.add({ targets: countdownNum, alpha: 0, delay: 550, duration: 350 });
+          });
+        };
+
+        showNum('3', 300);
+        showNum('2', 1300);
+        showNum('1', 2300);
+
+        // GO!
+        this.time.delayedCall(baseDelay + 3300, () => {
+          countdownNum.setText('GO!').setColor('#39ff14').setFontSize(320).setAlpha(0.5).setScale(3).setRotation(0);
+          scene.tweens.add({ targets: countdownNum, scale: 1, alpha: 0.45, duration: 300, ease: 'Back.easeOut' });
+
+          for (let i = 0; i < 20; i++) {
+            const a = (i / 20) * Math.PI * 2;
+            const colors = [0x39ff14, 0xffd700, 0x00ffff, 0xff44aa, 0xffffff];
+            const spark = scene.add.circle(cx, cy, Phaser.Math.Between(3, 6),
+              Phaser.Utils.Array.GetRandom(colors), 1).setScrollFactor(0).setDepth(1002);
+            const dist = Phaser.Math.Between(100, 250);
+            scene.tweens.add({
+              targets: spark,
+              x: cx + Math.cos(a) * dist, y: cy + Math.sin(a) * dist,
+              alpha: 0, scale: 0.1,
+              duration: Phaser.Math.Between(400, 700), ease: 'Quad.easeOut',
+              onComplete: () => spark.destroy()
+            });
+          }
+
+          scene.cameras.main.shake(200, 0.008);
+        });
+
+        // Cleanup & start
+        this.time.delayedCall(baseDelay + 4100, () => {
+          scene.tweens.add({
+            targets: countdownNum, alpha: 0, duration: 300, ease: 'Quad.easeIn',
+            onComplete: () => countdownNum.destroy()
+          });
+          scene.gameStarted = true;
+        });
+      };
+
+      let fakeLobbyDurationMs = Phaser.Math.Between(5000, 8000);
+      if (fakeLobbyDurationMs === lastFakeLobbyDurationMs) {
+        fakeLobbyDurationMs = fakeLobbyDurationMs >= 8000 ? fakeLobbyDurationMs - 1 : fakeLobbyDurationMs + 1;
+      }
+      lastFakeLobbyDurationMs = fakeLobbyDurationMs;
+      const fakeMatchEndAt = scene.time.now + fakeLobbyDurationMs;
+      const tickFakeMatchmaking = () => {
+        const remainingMs = Math.max(0, fakeMatchEndAt - scene.time.now);
+        const remainingSlots = Math.max(0, fakeTargetPlayers - fakeConnected);
+        if (remainingSlots <= 0) {
+          scene.tweens.add({ targets: [waitingTitle, waitingCount], alpha: 0, duration: 220, ease: 'Quad.easeIn',
+            onComplete: () => { waitingTitle.destroy(); waitingCount.destroy(); } });
+          launchCountdown(120);
+          return;
+        }
+
+        const chunks = Math.max(1, Math.floor(remainingMs / 170));
+        let step = Math.ceil(remainingSlots / chunks);
+        step = Phaser.Math.Clamp(step + (Math.random() < 0.35 ? 1 : 0), 1, 4);
+        fakeConnected = Math.min(fakeTargetPlayers, fakeConnected + step);
+        waitingCount.setText(`${fakeConnected}/${fakeTargetPlayers}`);
+
+        this.time.delayedCall(100 + Math.random() * 120, tickFakeMatchmaking);
+      };
+      this.time.delayedCall(220, tickFakeMatchmaking);
+    }
+
+    // ===================== UPDATE =====================
+    function update(time, delta) {
+      const scene = this;
+      if (!scene.gameStarted) {
+        scene.player.body.setVelocity(0,0);
+        scene.bots.forEach(b => b.circle.body.setVelocity(0,0));
+        return;
+      }
+      if (scene.timeLeft <= 0) {
+        scene.player.body.setVelocity(0,0);
+        scene.bots.forEach(b => b.circle.body.setVelocity(0,0));
+        if (!scene._endGameAnimating) updateHolderVisuals(scene);
+        return;
+      }
+
+      // Rotation des croix (moulin)
+      scene.crosses.forEach(c => {
+        c.graphic.rotation += 0.025;
+        c.glow.rotation += 0.025;
+      });
+
+      // --- Mystery box : apparition et pulsation ---
+      if (!scene.mysteryBoxActive && scene.mysteryBoxSpawnAt > 0
+          && scene.time.now >= scene.mysteryBoxSpawnAt) {
+        scene.mysteryBoxActive = true;
+        scene.mysteryBox.setVisible(true);
+        scene.mysteryBoxText.setVisible(true);
+        scene.mysteryBoxGlow.setVisible(true);
+        scene.mysteryBoxHitbox.body.enable = true;
+      }
+      if (scene.mysteryBoxActive) {
+        const pulse = 1 + 0.18 * Math.sin(time * 0.006);
+        scene.mysteryBox.setScale(pulse);
+        scene.mysteryBoxText.setScale(pulse);
+        scene.mysteryBoxGlow.setScale(pulse * 1.15);
+        scene.mysteryBox.rotation = Math.sin(time * 0.002) * 0.12;
+        scene.mysteryBoxGlow.rotation = scene.mysteryBox.rotation;
+      }
+
+      // --- Wild box : apparition et pulsation ---
+      if (!scene.wildBoxActive && scene.wildBoxSpawnAt > 0
+          && scene.time.now >= scene.wildBoxSpawnAt) {
+        scene.wildBoxActive = true;
+        const wx = Phaser.Math.Between(400, WORLD_WIDTH - 400);
+        const wy = Phaser.Math.Between(400, WORLD_HEIGHT - 400);
+        scene.wildBox.setPosition(wx, wy);
+        scene.wildBoxGlow.setPosition(wx, wy);
+        scene.wildBoxText.setPosition(wx, wy);
+        scene.wildBoxHitbox.setPosition(wx, wy);
+        scene.wildBoxHitbox.body.reset(wx, wy);
+        scene.wildBox.setVisible(true);
+        scene.wildBoxText.setVisible(true);
+        scene.wildBoxGlow.setVisible(true);
+        scene.wildBoxHitbox.body.enable = true;
+      }
+      if (scene.wildBoxActive) {
+        const wp = 1 + 0.18 * Math.sin(time * 0.007 + 1);
+        scene.wildBox.setScale(wp);
+        scene.wildBoxText.setScale(wp);
+        scene.wildBoxGlow.setScale(wp * 1.15);
+        scene.wildBox.rotation = Math.sin(time * 0.0025) * 0.12;
+        scene.wildBoxGlow.rotation = scene.wildBox.rotation;
+      }
+      scene.bonusBoxes.forEach((bb, idx) => {
+        if (!bb.active) return;
+        const bp = 1 + 0.16 * Math.sin(time * 0.006 + idx * 0.8);
+        bb.box.setScale(bp);
+        bb.text.setScale(bp);
+        bb.glow.setScale(bp * 1.12);
+        bb.box.rotation = Math.sin(time * 0.0022 + idx) * 0.11;
+        bb.glow.rotation = bb.box.rotation;
+      });
+
+      if (!scene.crownHolder && scene.crown.visible) {
+        const cp = 1 + 0.2 * Math.sin(time * 0.005);
+        scene.crown.setScale(cp);
+        scene.crown.alpha = 0.7 + 0.3 * Math.sin(time * 0.004);
+      }
+
+      if (!scene.lastTime) scene.lastTime = time;
+      const dt = (time - scene.lastTime) / 1000;
+      scene.lastTime = time;
+
+      resolveCrownConflicts(scene);
+
+      // --- Boost joueur ---
+      scene.boostActive = scene.spaceKey.isDown && scene.energy > 0;
+      if (scene.boostActive) {
+        const drainPerSec = ENERGY_MAX / (BOOST_DURATION / 1000);
+        scene.energy -= drainPerSec * dt;
+        if (scene.energy < 0) scene.energy = 0;
+      }
+      scene.playerPelletCount = Phaser.Math.Clamp(Math.floor(scene.energy), 0, 100);
+
+      // --- Jauge ---
+      const ratio = Phaser.Math.Clamp(scene.energy / ENERGY_MAX, 0, 1);
+      const fillH = (scene._barHeight - 4) * ratio;
+      scene.energyBarFill.y = scene._barBottom - 2;
+      scene.energyBarFill.height = fillH;
+      scene.energyBarFill.setOrigin(0.5, 1);
+      let cr, cg, cb;
+      if (ratio < 0.5) { const t=ratio/0.5; cr=255; cg=Math.floor(75+180*t); cb=Math.floor(75*(1-t)); }
+      else { const t=(ratio-0.5)/0.5; cr=Math.floor(255*(1-t)); cg=255; cb=Math.floor(50*t); }
+      const barColor = (cr<<16)|(cg<<8)|cb;
+      scene.energyBarFill.fillColor = barColor;
+      scene.energyBarBorder.setStrokeStyle(2, barColor, 0.9);
+      scene.energyPercent.setText(Math.round(ratio*100).toString());
+      scene.energyPercent.setColor(ratio<0.33?'#ff4b4b':ratio<0.66?'#facc15':'#39ff14');
+
+      // Timer couleur
+      if (scene.timeLeft<=10) scene.timerText.setColor('#ff4b4b');
+      else if (scene.timeLeft<=30) scene.timerText.setColor('#facc15');
+      else scene.timerText.setColor('#e5e7eb');
+
+      // Roi Légendaire HUD
+      scene.legendaryHud.setVisible(scene.legendaryKing && !!scene.crownHolder);
+
+      // --- Échelle joueur ---
+      const holder = scene.crownHolder;
+      const playerIsHolder = holder === 'player';
+      const playerPellets = scene.playerPelletCount || 0;
+      const playerRadius = PLAYER_RADIUS + playerPellets * 1.5;
+      const playerScaleFromPellets = playerRadius / PLAYER_RADIUS;
+      const targetPlayerScale = (playerIsHolder ? HOLDER_SCALE : 1) * playerScaleFromPellets;
+      scene.player.setScale(Phaser.Math.Linear(scene.player.scale, targetPlayerScale, 0.15));
+      scene.playerGlow.x = scene.player.x;
+      scene.playerGlow.y = scene.player.y;
+      scene.playerGlow.setScale(scene.player.scale);
+      scene.playerGlow.setVisible(false);
+      if (!playerIsHolder) {
+        scene.player.alpha = scene.boostActive ? 0.7 : 1;
+      }
+
+      // --- Échelle bots ---
+      scene.bots.forEach(b => {
+        const isH = holder === b.id;
+        const bp = Phaser.Math.Clamp(Math.floor(b.energy), 0, 100);
+        const bRadius = PLAYER_RADIUS + bp * 1.5;
+        const bScaleP = bRadius / PLAYER_RADIUS;
+        const tScale = (isH ? HOLDER_SCALE : 1) * bScaleP;
+        b.circle.setScale(Phaser.Math.Linear(b.circle.scale, tScale, 0.15));
+        b.glow.x = b.circle.x;
+        b.glow.y = b.circle.y;
+        b.glow.setScale(b.circle.scale);
+        b.glow.setVisible(false);
+        if (!isH) {
+          b.circle.alpha = b.boostActive ? 0.7 : 1;
+        }
+      });
+
+      // --- Trainées boost ---
+      if (!scene._lastTrailTime) scene._lastTrailTime = 0;
+      if (time - scene._lastTrailTime > 40) {
+        scene._lastTrailTime = time;
+        if (scene.boostActive) {
+          const tr = scene.add.circle(scene.player.x, scene.player.y,
+            PLAYER_RADIUS * scene.player.scale * 0.55, 0x00ffe0, 0.35).setDepth(scene.player.depth - 1);
+          scene.tweens.add({ targets: tr, alpha: 0, scale: 0.15, duration: 350, ease: 'Quad.easeOut',
+            onComplete: () => tr.destroy() });
+        }
+        scene.bots.forEach(b => {
+          if (b.boostActive) {
+            const tr = scene.add.circle(b.circle.x, b.circle.y,
+              PLAYER_RADIUS * b.circle.scale * 0.55, b.color, 0.35).setDepth(b.circle.depth - 1);
+            scene.tweens.add({ targets: tr, alpha: 0, scale: 0.15, duration: 350, ease: 'Quad.easeOut',
+              onComplete: () => tr.destroy() });
+          }
+        });
+      }
+
+      // --- Pseudos dans les cercles (non-porteurs) ---
+      const pScale = scene.player.scale;
+      const pDiameter = PLAYER_RADIUS * 2 * pScale;
+      scene.playerNameText.x = scene.player.x;
+      scene.playerNameText.y = scene.player.y;
+      scene.playerNameText.setScale(Math.min(pScale, pDiameter / (scene.playerNameText.width || 1) * 0.9));
+      scene.playerNameText.setVisible(!playerIsHolder);
+
+      scene.bots.forEach(b => {
+        const bs = b.circle.scale;
+        const bDiam = PLAYER_RADIUS * 2 * bs;
+        b.nameText.x = b.circle.x;
+        b.nameText.y = b.circle.y;
+        b.nameText.setScale(Math.min(bs, bDiam / (b.nameText.width || 1) * 0.9));
+        b.nameText.setVisible(holder !== b.id);
+      });
+
+      // --- Depth dynamique : les plus gros passent au-dessus ---
+      const pDepth = Math.round(pScale * 100);
+      scene.player.setDepth(pDepth);
+      scene.playerGlow.setDepth(pDepth - 1);
+      scene.playerNameText.setDepth(pDepth + 1);
+
+      scene.bots.forEach(b => {
+        const bd = Math.round(b.circle.scale * 100);
+        b.circle.setDepth(bd);
+        b.glow.setDepth(bd - 1);
+        b.nameText.setDepth(bd + 1);
+      });
+
+      // --- Éjection : un gros chasseur recouvre un petit ---
+      if (holder) {
+        const allChasers = [];
+        if (holder !== 'player') allChasers.push({ id: 'player', c: scene.player, e: scene.energy });
+        scene.bots.forEach(b => {
+          if (holder !== b.id) allChasers.push({ id: b.id, c: b.circle, e: b.energy });
+        });
+        const kingCircle = getCircle(scene, holder);
+        for (let i = 0; i < allChasers.length; i++) {
+          for (let j = i + 1; j < allChasers.length; j++) {
+            const a = allChasers[i], b = allChasers[j];
+            const diff = a.e - b.e;
+            const absDiff = Math.abs(diff);
+            if (absDiff < 15) continue;
+            const big = diff > 0 ? a : b;
+            const small = diff > 0 ? b : a;
+            const bigR = PLAYER_RADIUS * big.c.scale;
+            const smallR = PLAYER_RADIUS * small.c.scale;
+            const dx = big.c.x - small.c.x, dy = big.c.y - small.c.y;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            if (dist < bigR - smallR * 0.45) {
+              if (kingCircle) {
+                const ekx = small.c.x - kingCircle.x;
+                const eky = small.c.y - kingCircle.y;
+                const ekd = Math.sqrt(ekx * ekx + eky * eky) || 1;
+                const ejX = (ekx / ekd) * 500;
+                const ejY = (eky / ekd) * 500;
+                small.c.body.reset(small.c.x + ejX, small.c.y + ejY);
+                const kb = getKnockback(scene, small.id);
+                kb.x = (ekx / ekd) * 800;
+                kb.y = (eky / ekd) * 800;
+              }
+            }
+          }
+        }
+      }
+
+      // --- Contour doré + couronne portée + immunité ---
+      updateHolderVisuals(scene);
+
+      // --- Icônes de power-up actif (dans le cercle) ---
+      for (const id of Object.keys(scene.activePowerUps)) {
+        const pu = scene.activePowerUps[id];
+        if (scene.time.now >= pu.expireAt) {
+          if (scene.powerUpFloatIcons[id]) {
+            scene.powerUpFloatIcons[id].destroy();
+            delete scene.powerUpFloatIcons[id];
+          }
+          delete scene.activePowerUps[id];
+          continue;
+        }
+        const c = getCircle(scene, id);
+        if (c && scene.powerUpFloatIcons[id]) {
+          scene.powerUpFloatIcons[id].x = c.x;
+          scene.powerUpFloatIcons[id].y = c.y;
+          scene.powerUpFloatIcons[id].setScale(c.scale);
+          scene.powerUpFloatIcons[id].setVisible(!isGhosted(scene, id));
+        }
+      }
+
+      // --- Rage : clignotement rouge ---
+      const playerRaging = scene._rageUntil && scene.time.now < scene._rageUntil;
+      if (playerRaging) {
+        const flash = Math.floor(scene.time.now / 80) % 2 === 0;
+        scene.player.fillColor = flash ? 0xff2222 : 0x880000;
+        scene.playerGlow.fillColor = flash ? 0xff4444 : 0x880000;
+        scene.playerGlow.alpha = flash ? 0.5 : 0.2;
+      } else if (scene._rageUntil && scene.time.now >= scene._rageUntil) {
+        scene.player.fillColor = 0x00ffe0;
+        scene.playerGlow.fillColor = 0x00ffe0;
+        scene._rageUntil = 0;
+      }
+      scene.bots.forEach(b => {
+        const bRaging = b._rageUntil && scene.time.now < b._rageUntil;
+        if (bRaging) {
+          const flash = Math.floor(scene.time.now / 80) % 2 === 0;
+          b.circle.fillColor = flash ? 0xff2222 : 0x880000;
+          b.glow.fillColor = flash ? 0xff4444 : 0x880000;
+          b.glow.alpha = flash ? 0.5 : 0.2;
+        } else if (b._rageUntil && scene.time.now >= b._rageUntil) {
+          b.circle.fillColor = b.color;
+          b.glow.fillColor = b.color;
+          b._rageUntil = 0;
+        }
+      });
+
+      // --- Ghost : invisibilité ---
+      const playerGhosted = scene._ghostUntil && scene.time.now < scene._ghostUntil;
+      if (playerGhosted) {
+        scene.player.alpha = 0.25;
+        scene.playerGlow.setVisible(false);
+        scene.playerNameText.alpha = 0.25;
+      } else if (scene._ghostUntil && scene.time.now >= scene._ghostUntil) {
+        scene.player.alpha = 1;
+        scene.playerNameText.alpha = 1;
+        scene._ghostUntil = 0;
+      }
+      scene.bots.forEach(b => {
+        const bGhosted = b._ghostUntil && scene.time.now < b._ghostUntil;
+        if (bGhosted) {
+          b.circle.alpha = 0;
+          b.glow.setVisible(false);
+          b.nameText.setVisible(false);
+        } else if (b._ghostUntil && scene.time.now >= b._ghostUntil) {
+          b.circle.alpha = 1;
+          b._ghostUntil = 0;
+        }
+      });
+
+      // --- Vitesse joueur (+ power-ups) ---
+      let playerBaseSpeed = playerIsHolder ? BASE_SPEED * HOLDER_SLOW_FACTOR : BASE_SPEED;
+      if (scene._speedBoostUntil && scene.time.now < scene._speedBoostUntil) playerBaseSpeed *= 3;
+      if (playerRaging) playerBaseSpeed *= 1.5;
+      const speedMult = scene.boostActive ? BOOST_MULTIPLIER : 1;
+
+      // --- Magnet joueur : attire les billes proches ---
+      if (scene._magnetUntil && scene.time.now < scene._magnetUntil) {
+        scene.pelletGroup.getChildren().forEach(p => {
+          if (!p.active) return;
+          const dx = scene.player.x - p.x, dy = scene.player.y - p.y;
+          const d = Math.sqrt(dx*dx+dy*dy);
+          if (d < 300) { p.x += (dx/d) * 6; p.y += (dy/d) * 6; }
+        });
+      }
+
+      // --- Zoom ---
+      const desiredZoom = Phaser.Math.Clamp(1/(0.7+playerScaleFromPellets*0.225), 0.45, 1);
+      scene.cameras.main.setZoom(Phaser.Math.Linear(scene.cameras.main.zoom, desiredZoom, 0.08));
+
+      // --- HUD compensation zoom ---
+      const camMain = scene.cameras.main;
+      const z = camMain.zoom||1, invZ = 1/z;
+      const cw = GAME_WIDTH/2, ch = GAME_HEIGHT/2;
+      function fixHud(el,sx,sy) { el.x=(sx-cw)*invZ+cw; el.y=(sy-ch)*invZ+ch; el.setScale(invZ); }
+      fixHud(scene.timerText, 90, 50);
+      fixHud(scene.legendaryHud, GAME_WIDTH / 2, 95);
+      fixHud(scene.targetLabel, GAME_WIDTH-20, 14);
+      fixHud(scene.targetName, GAME_WIDTH-20, 52);
+      fixHud(scene.energyBarBg, 36, scene._barTop+scene._barHeight/2);
+      fixHud(scene.energyBarBorder, 36, scene._barTop+scene._barHeight/2);
+      fixHud(scene.energyBarFill, 36, scene._barBottom-2);
+      fixHud(scene.energyBolt, 36, scene._barTop-28);
+      fixHud(scene.energyPercent, 48, scene._barBottom+28);
+      fixHud(scene.powerUpBox, scene._puX, scene._puY);
+      fixHud(scene.powerUpIcon, scene._puX, scene._puY);
+      fixHud(scene.lbBg, GAME_WIDTH - 20 - 100, scene._lbY + 120);
+      fixHud(scene.lbTitle, GAME_WIDTH - 20 - 100, scene._lbY - 16);
+      for (let li = 0; li < scene.lbRows.length; li++) {
+        fixHud(scene.lbRows[li], GAME_WIDTH - 20, scene._lbY + 22 + li * 22);
+      }
+      scene.crownArrow.setScale(invZ);
+
+      // Expiration du power-up affiché (après activation)
+      if (scene.playerPowerUpUntil > 0 && scene.time.now >= scene.playerPowerUpUntil) {
+        scene.powerUpIcon.setText('');
+        scene.powerUpBox.setStrokeStyle(3, 0xaaaaaa, 0.7);
+        scene.playerPowerUpUntil = 0;
+      }
+
+      // Clignotement du HUD quand un power-up est stocké (prêt à l'emploi)
+      if (scene._rouletteRunning) {
+        scene.powerUpBox.setAlpha(1);
+        scene.powerUpIcon.setAlpha(1);
+      } else if (scene.playerStoredPowerUp) {
+        const pulse = 0.6 + 0.4 * Math.sin(scene.time.now * 0.006);
+        scene.powerUpBox.setAlpha(pulse);
+        scene.powerUpIcon.setAlpha(pulse);
+      } else if (scene.playerPowerUpUntil <= 0) {
+        scene.powerUpBox.setAlpha(1);
+        scene.powerUpIcon.setAlpha(1);
+      }
+
+      // --- Mouvement joueur ---
+      const pointer = scene.pointer;
+      const screenX = pointer.x, screenY = pointer.y;
+      let vx=0, vy=0;
+      if (typeof screenX==='number' && typeof screenY==='number') {
+        const camZoom = camMain.zoom||1;
+        const dxS = (screenX-GAME_WIDTH/2)/camZoom;
+        const dyS = (screenY-GAME_HEIGHT/2)/camZoom;
+        const distS = Math.sqrt(dxS*dxS+dyS*dyS);
+        if (distS>0.1) { scene.playerMoveDirX=dxS/distS; scene.playerMoveDirY=dyS/distS; }
+        vx = scene.playerMoveDirX * playerBaseSpeed * speedMult;
+        vy = scene.playerMoveDirY * playerBaseSpeed * speedMult;
+      }
+      scene.player.body.setVelocity(
+        vx + (scene.playerKnockbackX||0),
+        vy + (scene.playerKnockbackY||0)
+      );
+      scene.playerKnockbackX *= 0.86;
+      scene.playerKnockbackY *= 0.86;
+
+      // --- IA Bots ---
+      const boxX = WORLD_WIDTH / 2, boxY = WORLD_HEIGHT / 2;
+      scene.bots.forEach(bot => {
+        const profile = bot.aiProfile || BOT_PROFILES[0];
+        const isHolder = holder === bot.id;
+        let botSpeed = isHolder ? BASE_SPEED * HOLDER_SLOW_FACTOR : BASE_SPEED;
+        if (bot._speedBoostUntil && scene.time.now < bot._speedBoostUntil) botSpeed *= 3;
+        if (bot._rageUntil && scene.time.now < bot._rageUntil) botSpeed *= 1.5;
+
+        // Magnet bot
+        if (bot._magnetUntil && scene.time.now < bot._magnetUntil) {
+          scene.pelletGroup.getChildren().forEach(p => {
+            if (!p.active) return;
+            const mdx = bot.circle.x - p.x, mdy = bot.circle.y - p.y;
+            const md = Math.sqrt(mdx*mdx+mdy*mdy);
+            if (md < 300) { p.x += (mdx/md)*6; p.y += (mdy/md)*6; }
+          });
+        }
+
+        // Boost drain
+        if (bot.boostActive) {
+          const drain = ENERGY_MAX / (BOOST_DURATION / 1000);
+          bot.energy -= drain * dt;
+          if (bot.energy <= 0) { bot.energy = 0; bot.boostActive = false; }
+        }
+
+        const holderCircle = holder ? getCircle(scene, holder) : null;
+        const holderEnergy = holder ? getEnergy(scene, holder) : 0;
+        const distToHolder = holderCircle
+          ? Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, holderCircle.x, holderCircle.y)
+          : Infinity;
+        const distToCrown = holder ? Infinity : Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, scene.crown.x, scene.crown.y);
+        const botRagingNow = isRaging(scene, bot.id);
+        const botGhostedNow = isGhosted(scene, bot.id);
+        const lowEnergy = bot.energy < Math.max(16, bot.aiFarmThreshold - 6 + profile.farmOffset);
+        const strongEnoughToContest = holderCircle && bot.energy >= holderEnergy + profile.contestMargin;
+        const underpoweredVsHolder = holderCircle && (holderEnergy - bot.energy > 14) && !botRagingNow && !botGhostedNow;
+        const hasBonusBox = scene.bonusBoxes && scene.bonusBoxes.some(bb => bb.active);
+        const canTakeAnyBox = (scene.mysteryBoxActive || scene.wildBoxActive || hasBonusBox) && !scene.activePowerUps[bot.id] && !bot.storedPowerUp;
+        const canTakeBox = canTakeAnyBox && bot.energy >= 18;
+        const mustChargeBeforeAttack = bot.aiChargeBeforeAttack && bot.energy < 30 && !botRagingNow && !botGhostedNow;
+        const energyCrisis = bot.energy < 8;
+        const highEnergyAttacker = bot.energy >= 50;
+        const ultraAggro = bot.energy >= 80;
+        const attackEngageDistance = highEnergyAttacker ? 760 : 420;
+
+        // --- Décision de phase : plus stratégique, proche d'un joueur humain ---
+        if (scene.time.now > bot.aiDecisionTimer) {
+          bot.aiDecisionTimer = scene.time.now + 320 + Math.random() * 260;
+
+          if (isHolder) {
+            bot.aiPhase = 'flee';
+          } else if (holderCircle) {
+            let nearestBoxDist = Infinity;
+            if (scene.mysteryBoxActive) nearestBoxDist = Math.min(nearestBoxDist, Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, boxX, boxY));
+            if (scene.wildBoxActive) nearestBoxDist = Math.min(nearestBoxDist, Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, scene.wildBox.x, scene.wildBox.y));
+            if (hasBonusBox) {
+              scene.bonusBoxes.forEach(bb => {
+                if (!bb.active) return;
+                const db = Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, bb.box.x, bb.box.y);
+                nearestBoxDist = Math.min(nearestBoxDist, db);
+              });
+            }
+
+            if (ultraAggro) {
+              bot.aiPhase = 'attack';
+            } else if (energyCrisis) {
+              bot.aiPhase = canTakeAnyBox && nearestBoxDist < 1800 ? 'box' : 'farm';
+            } else if (mustChargeBeforeAttack) {
+              bot.aiPhase = canTakeAnyBox && nearestBoxDist < 1600 ? 'box' : 'farm';
+            } else if ((!profile.alwaysPressure && lowEnergy && distToHolder > 560) ||
+                (underpoweredVsHolder && distToHolder < 620 && profile.key !== 'berserker')) {
+              bot.aiPhase = 'farm';
+            } else if (!profile.alwaysPressure && canTakeBox && nearestBoxDist < profile.boxRange && !strongEnoughToContest) {
+              bot.aiPhase = 'box';
+            } else if (distToHolder < attackEngageDistance || strongEnoughToContest || bot.energy > profile.attackEnergyGate + 16) {
+              bot.aiPhase = 'attack';
+            } else {
+              bot.aiPhase = (!profile.alwaysPressure && lowEnergy) ? 'farm' : 'attack';
+            }
+          } else {
+            // Couronne libre : priorité à la prise, mais pas à vide si énergie trop faible.
+            let nearestBoxDist = Infinity;
+            if (scene.mysteryBoxActive) nearestBoxDist = Math.min(nearestBoxDist, Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, boxX, boxY));
+            if (scene.wildBoxActive) nearestBoxDist = Math.min(nearestBoxDist, Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, scene.wildBox.x, scene.wildBox.y));
+            if (hasBonusBox) {
+              scene.bonusBoxes.forEach(bb => {
+                if (!bb.active) return;
+                const db = Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, bb.box.x, bb.box.y);
+                nearestBoxDist = Math.min(nearestBoxDist, db);
+              });
+            }
+
+            if (ultraAggro) {
+              bot.aiPhase = 'crown';
+            } else if (energyCrisis) {
+              bot.aiPhase = canTakeAnyBox && nearestBoxDist < 1800 ? 'box' : 'farm';
+            } else if (!profile.alwaysPressure && lowEnergy && distToCrown > 640) {
+              bot.aiPhase = 'farm';
+            } else if (!profile.alwaysPressure && canTakeBox && nearestBoxDist < Math.min(profile.boxRange, 1200) && distToCrown > 350) {
+              bot.aiPhase = 'box';
+            } else {
+              bot.aiPhase = 'crown';
+            }
+          }
+        }
+
+        let txIA, tyIA;
+        bot.boostActive = false;
+        const jit = bot.aiJitter;
+        let nearestEnemyDist = Infinity;
+
+        switch (bot.aiPhase) {
+          case 'flee': {
+            // Roi : fuir le chasseur le plus proche, boost si menacé
+            let nearDist = Infinity, nearX = 0, nearY = 0;
+            const checkNear = (cx, cy) => {
+              const dd = Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, cx, cy);
+              if (dd < nearDist) { nearDist = dd; nearX = cx; nearY = cy; }
+            };
+            checkNear(scene.player.x, scene.player.y);
+            scene.bots.forEach(ob => { if (ob.id !== bot.id) checkNear(ob.circle.x, ob.circle.y); });
+            nearestEnemyDist = nearDist;
+
+            const fdx = bot.circle.x - nearX, fdy = bot.circle.y - nearY;
+            const fd = Math.sqrt(fdx*fdx + fdy*fdy) || 1;
+            txIA = bot.circle.x + (fdx/fd)*250 + Math.sin(time*0.002*jit)*100;
+            tyIA = bot.circle.y + (fdy/fd)*250 + Math.cos(time*0.003*jit)*100;
+            // Rester dans les limites du monde
+            txIA = Phaser.Math.Clamp(txIA, 100, WORLD_WIDTH - 100);
+            tyIA = Phaser.Math.Clamp(tyIA, 100, WORLD_HEIGHT - 100);
+            if (nearDist < Math.max(profile.kingEscapeDist, 420) && bot.energy > Math.min(profile.kingEscapeEnergy, 8)) {
+              bot.boostCommitUntil = Math.max(bot.boostCommitUntil, scene.time.now + profile.boostBurst + 120);
+            }
+            break;
+          }
+          case 'farm': {
+            // Chercher la bille la plus proche et s'en rapprocher
+            let bestPellet = null, bestDist = Infinity;
+            scene.pelletGroup.getChildren().forEach(p => {
+              if (!p.active) return;
+              const dd = Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, p.x, p.y);
+              const val = p.getData('value') || 1;
+              const score = dd - val * 50;
+              if (score < bestDist) { bestDist = score; bestPellet = p; }
+            });
+            if (bestPellet) {
+              txIA = bestPellet.x;
+              tyIA = bestPellet.y;
+            } else {
+              txIA = bot.circle.x + Math.sin(time*0.001*jit)*200;
+              tyIA = bot.circle.y + Math.cos(time*0.0015*jit)*200;
+            }
+            break;
+          }
+          case 'box': {
+            // Aller vers la caisse la plus proche (palais ou wild)
+            let targetBX = boxX, targetBY = boxY;
+            const dPalace = scene.mysteryBoxActive ? Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, boxX, boxY) : Infinity;
+            const dWild = scene.wildBoxActive ? Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, scene.wildBox.x, scene.wildBox.y) : Infinity;
+            let dBonus = Infinity;
+            let bonusTarget = null;
+            if (hasBonusBox) {
+              scene.bonusBoxes.forEach(bb => {
+                if (!bb.active) return;
+                const d = Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, bb.box.x, bb.box.y);
+                if (d < dBonus) {
+                  dBonus = d;
+                  bonusTarget = bb;
+                }
+              });
+            }
+            if (dWild < dPalace) { targetBX = scene.wildBox.x; targetBY = scene.wildBox.y; }
+            if (bonusTarget && dBonus < Math.min(dPalace, dWild)) { targetBX = bonusTarget.box.x; targetBY = bonusTarget.box.y; }
+            txIA = targetBX;
+            tyIA = targetBY;
+            const dBox = Math.min(dPalace, dWild, dBonus);
+            if (dBox < 380 && bot.energy > 26 && (!holderCircle || distToHolder > 420)) {
+              bot.boostCommitUntil = Math.max(bot.boostCommitUntil, scene.time.now + Math.max(220, profile.boostBurst - 60));
+            }
+            break;
+          }
+          case 'crown': {
+            // Aller vers la couronne libre
+            txIA = scene.crown.x;
+            tyIA = scene.crown.y;
+            const dCrown = Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, scene.crown.x, scene.crown.y);
+            if (dCrown > 180 && dCrown < 700 && bot.energy > profile.crownBoostMin) {
+              bot.boostCommitUntil = Math.max(bot.boostCommitUntil, scene.time.now + Math.max(220, profile.boostBurst - 20));
+            }
+            if (dCrown < 900 && bot.energy > Math.max(8, profile.crownBoostMin - 4)) {
+              bot.boostCommitUntil = Math.max(bot.boostCommitUntil, scene.time.now + profile.boostBurst);
+            }
+            if (highEnergyAttacker && dCrown < 1200 && bot.energy > 60) {
+              bot.boostCommitUntil = Math.max(bot.boostCommitUntil, scene.time.now + profile.boostBurst + 140);
+            }
+            break;
+          }
+          case 'attack': {
+            // Attaquer le porteur de couronne
+            const hc = getCircle(scene, holder);
+            if (hc) {
+              if (underpoweredVsHolder && distToHolder < 520 && profile.key !== 'berserker') {
+                // Trop faible pour voler la couronne: on décroche pour se renforcer
+                const rdx = bot.circle.x - hc.x;
+                const rdy = bot.circle.y - hc.y;
+                const rd = Math.sqrt(rdx * rdx + rdy * rdy) || 1;
+                txIA = bot.circle.x + (rdx / rd) * 300;
+                tyIA = bot.circle.y + (rdy / rd) * 300;
+                break;
+              }
+              const leadX = hc.body ? hc.body.velocity.x * 0.2 : 0;
+              const leadY = hc.body ? hc.body.velocity.y * 0.2 : 0;
+              txIA = hc.x + leadX;
+              tyIA = hc.y + leadY;
+              const dc = Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, hc.x, hc.y);
+              nearestEnemyDist = dc;
+              // Boost d'attaque uniquement a proximité immédiate du roi.
+              const closeBoostDistance = highEnergyAttacker ? 360 : 280;
+              if (dc < closeBoostDistance && bot.energy > Math.max(6, profile.attackEnergyGate - 10)) {
+                bot.boostCommitUntil = Math.max(bot.boostCommitUntil, scene.time.now + Math.max(220, profile.boostBurst - 80));
+              }
+              // Gros bots: bursts de poursuite plus fréquents pour ne pas "coller" sans agir.
+              if (highEnergyAttacker && bot.energy > 55 && dc < 1100) {
+                bot.boostCommitUntil = Math.max(bot.boostCommitUntil, scene.time.now + profile.boostBurst + 160);
+              }
+              if (dc < 320 && !scene.auraShieldBroken && (isRaging(scene, bot.id) || isGhosted(scene, bot.id))) {
+                bot.boostCommitUntil = Math.max(bot.boostCommitUntil, scene.time.now + Math.max(260, profile.boostBurst - 40));
+              }
+              if (ultraAggro && dc < 1400 && bot.energy > 35) {
+                bot.boostCommitUntil = Math.max(bot.boostCommitUntil, scene.time.now + profile.boostBurst + 260);
+              }
+            } else {
+              txIA = scene.crown.x;
+              tyIA = scene.crown.y;
+            }
+            break;
+          }
+          default: {
+            txIA = bot.circle.x;
+            tyIA = bot.circle.y;
+          }
+        }
+
+        // Filet de sécurité: un gros bot en mode attaque garde une pression active.
+        if (!isHolder && highEnergyAttacker && bot.aiPhase === 'attack' && holderCircle && distToHolder < 1250 && bot.energy > 52) {
+          bot.boostCommitUntil = Math.max(bot.boostCommitUntil, scene.time.now + Math.max(260, profile.boostBurst - 10));
+        }
+        if (!isHolder && ultraAggro && holderCircle && distToHolder < 1700) {
+          bot.boostCommitUntil = Math.max(bot.boostCommitUntil, scene.time.now + profile.boostBurst + 240);
+        }
+
+        // Éviter les joueurs plus gros (si chasseur, pas en rage, pas en ghost)
+        if (!isHolder && !isRaging(scene, bot.id) && !isGhosted(scene, bot.id)) {
+          const allOthers = [{ c: scene.player, e: scene.energy, id: 'player' },
+            ...scene.bots.filter(ob => ob.id !== bot.id).map(ob => ({ c: ob.circle, e: ob.energy, id: ob.id }))];
+          for (const other of allOthers) {
+            if (other.id === holder) continue;
+            if (isGhosted(scene, other.id)) continue;
+            if (other.e - bot.energy >= 15) {
+              const dd = Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, other.c.x, other.c.y);
+              const dangerR = PLAYER_RADIUS * other.c.scale * 1.5;
+              if (dd < dangerR + 80) {
+                const avx = bot.circle.x - other.c.x, avy = bot.circle.y - other.c.y;
+                const avd = Math.sqrt(avx*avx + avy*avy) || 1;
+                txIA = bot.circle.x + (avx/avd) * 200;
+                tyIA = bot.circle.y + (avy/avd) * 200;
+                break;
+              }
+            }
+          }
+        }
+
+        // Activer le power-up stocké seulement dans des situations pertinentes.
+        if (!scene.activePowerUps[bot.id] && bot.storedPowerUp) {
+          let useStored = false;
+          const pu = bot.storedPowerUp;
+          let nearbyPellets = 0;
+          if (pu === 'magnet') {
+            scene.pelletGroup.getChildren().forEach(p => {
+              if (!p.active) return;
+              const dpm = Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, p.x, p.y);
+              if (dpm < 280) nearbyPellets++;
+            });
+          }
+
+          if (pu === 'rage') {
+            useStored = !!holderCircle && holder !== bot.id && distToHolder < profile.rageDist && !scene.auraShieldBroken && bot.energy > profile.attackEnergyGate - 4;
+          } else if (pu === 'ghost') {
+            useStored = (isHolder && nearestEnemyDist < (profile.key === 'defensive' ? 320 : 240)) ||
+              (!!holderCircle && holder !== bot.id && distToHolder < (profile.key === 'aggressive' ? 450 : 360) && !scene.auraShieldBroken);
+          } else if (pu === 'speed') {
+            useStored = (bot.aiPhase === 'attack' && distToHolder > 180 && distToHolder < 900 && bot.energy > profile.attackEnergyGate - 8) ||
+              (isHolder && nearestEnemyDist < 430);
+          } else if (pu === 'magnet') {
+            useStored = bot.aiPhase === 'farm' && nearbyPellets >= (profile.key === 'farmer' ? 6 : 9);
+          } else if (pu === 'turbo') {
+            useStored = bot.energy < (profile.key === 'aggressive' ? 34 : 28) &&
+              ((holderCircle && distToHolder < 700) || (!holderCircle && distToCrown < 500));
+          }
+
+          // Le roi sous pression doit survivre : déclenchement défensif explicite.
+          if (isHolder && nearestEnemyDist < profile.kingEscapeDist + 40) {
+            if (pu === 'speed' || pu === 'ghost') useStored = true;
+            if (pu === 'turbo' && bot.energy < 55) useStored = true;
+          }
+
+          if (useStored) {
+            activatePowerUp(scene, bot.id, pu);
+            bot.storedPowerUp = null;
+          }
+        }
+
+        // Garde un boost en "burst" court au lieu de le spammer en continu.
+        if (bot.energy <= 2) {
+          bot.boostCommitUntil = 0;
+        }
+        bot.boostActive = scene.time.now < bot.boostCommitUntil && bot.energy > 2;
+
+        const bdx = txIA - bot.circle.x;
+        const bdy = tyIA - bot.circle.y;
+        const bdist = Math.sqrt(bdx*bdx+bdy*bdy)||1;
+        const bMult = bot.boostActive ? BOOST_MULTIPLIER : 1;
+        const bvx = (bdx/bdist) * botSpeed * bMult + (bot.knockbackX||0);
+        const bvy = (bdy/bdist) * botSpeed * bMult + (bot.knockbackY||0);
+        bot.circle.body.setVelocity(bvx, bvy);
+        bot.knockbackX *= 0.86;
+        bot.knockbackY *= 0.86;
+
+        // Temps de possession
+        if (isHolder) bot.holdTime += dt;
+      });
+
+      // Temps de possession joueur
+      if (playerIsHolder) scene.playerHoldTime += dt;
+
+      // --- Leaderboard mise à jour ---
+      const lbEntries = [
+        { name: playerPseudo, score: scene.playerScore, isHolder: playerIsHolder, isPlayer: true }
+      ];
+      scene.bots.forEach(b => {
+        lbEntries.push({ name: b.name, score: b.score, isHolder: holder === b.id, isPlayer: false });
+      });
+      lbEntries.sort((a, b) => b.score - a.score);
+      for (let li = 0; li < 10; li++) {
+        if (li < lbEntries.length) {
+          const e = lbEntries[li];
+          const crown = e.isHolder ? ' ♕' : '';
+          const prefix = `${li + 1}. `;
+          scene.lbRows[li].setText(`${prefix}${e.name}  ${e.score} pts${crown}`);
+          if (e.isPlayer) scene.lbRows[li].setColor('#39ff14');
+          else if (e.isHolder) scene.lbRows[li].setColor('#ffd700');
+          else scene.lbRows[li].setColor('#ffffff');
+        } else {
+          scene.lbRows[li].setText('');
+        }
+      }
+
+      // --- Flèche vers la couronne ---
+      let arrowTX, arrowTY;
+      if (!holder) { arrowTX=scene.crown.x; arrowTY=scene.crown.y; }
+      else { const ac=getCircle(scene,holder); if(ac){arrowTX=ac.x;arrowTY=ac.y;} }
+
+      if (typeof arrowTX==='number') {
+        const camCX = camMain.scrollX+GAME_WIDTH/2, camCY = camMain.scrollY+GAME_HEIGHT/2;
+        const dxA = arrowTX-camCX, dyA = arrowTY-camCY;
+        const halfW=GAME_WIDTH/2-32, halfH=GAME_HEIGHT/2-32;
+        if (Math.abs(dxA)<=halfW && Math.abs(dyA)<=halfH) {
+          scene.crownArrow.setVisible(false);
+        } else {
+          const ang = Math.atan2(dyA,dxA);
+          const vxA=Math.cos(ang), vyA=Math.sin(ang);
+          const sA = Math.min(halfW/Math.abs(vxA||0.0001), halfH/Math.abs(vyA||0.0001));
+          const asX=GAME_WIDTH/2+vxA*sA, asY=GAME_HEIGHT/2+vyA*sA;
+          scene.crownArrow.x=(asX-cw)*invZ+cw;
+          scene.crownArrow.y=(asY-ch)*invZ+ch;
+          scene.crownArrow.rotation=ang+Math.PI/2;
+          scene.crownArrow.setVisible(true);
+        }
+      } else { scene.crownArrow.setVisible(false); }
+
+      // --- Target ---
+      if (holder === 'player') scene.targetName.setText(playerPseudo);
+      else if (holder) { const b=scene.bots.find(x=>x.id===holder); scene.targetName.setText(b?b.name:'?'); }
+      else scene.targetName.setText('—');
+    }
+
+    // ===================== HELPERS =====================
+    function getCircle(scene, id) {
+      if (!id) return null;
+      if (id==='player') return scene.player;
+      const b = scene.bots.find(x=>x.id===id);
+      return b ? b.circle : null;
+    }
+
+    function getKnockback(scene, id) {
+      if (id==='player') return { get x(){return scene.playerKnockbackX}, get y(){return scene.playerKnockbackY},
+        set x(v){scene.playerKnockbackX=v}, set y(v){scene.playerKnockbackY=v} };
+      const b=scene.bots.find(x=>x.id===id);
+      return { get x(){return b.knockbackX}, get y(){return b.knockbackY},
+        set x(v){b.knockbackX=v}, set y(v){b.knockbackY=v} };
+    }
+
+    const PELLET_TIERS = [
+      { value: 1, radius: 4, weight: 60 },
+      { value: 3, radius: 7, weight: 28 },
+      { value: 5, radius: 11, weight: 12 }
+    ];
+    const PELLET_COLORS = {
+      1: [0xfff38a, 0xa5ff8a],
+      3: [0x7cf9ff, 0x44aaff],
+      5: [0xff8af5, 0xff44aa]
+    };
+
+    function getPelletSpawnHotspot(scene) {
+      const entities = [{ x: scene.player.x, y: scene.player.y }];
+      scene.bots.forEach(b => entities.push({ x: b.circle.x, y: b.circle.y }));
+      if (entities.length === 0) return { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 };
+
+      // Find the densest local cluster (majority zone).
+      let bestIdx = 0;
+      let bestCount = -1;
+      const clusterRadius = 1700;
+      for (let i = 0; i < entities.length; i++) {
+        let count = 0;
+        for (let j = 0; j < entities.length; j++) {
+          const dx = entities[j].x - entities[i].x;
+          const dy = entities[j].y - entities[i].y;
+          if (dx * dx + dy * dy <= clusterRadius * clusterRadius) count++;
+        }
+        if (count > bestCount) {
+          bestCount = count;
+          bestIdx = i;
+        }
+      }
+
+      const anchor = entities[bestIdx];
+      let sumX = 0;
+      let sumY = 0;
+      let n = 0;
+      for (let i = 0; i < entities.length; i++) {
+        const dx = entities[i].x - anchor.x;
+        const dy = entities[i].y - anchor.y;
+        if (dx * dx + dy * dy <= clusterRadius * clusterRadius) {
+          sumX += entities[i].x;
+          sumY += entities[i].y;
+          n++;
+        }
+      }
+      if (n === 0) return { x: anchor.x, y: anchor.y };
+      return { x: sumX / n, y: sumY / n };
+    }
+
+    function spawnPellet(scene, forceUniform) {
+      let x;
+      let y;
+      if (forceUniform) {
+        x = Phaser.Math.Between(40, WORLD_WIDTH - 40);
+        y = Phaser.Math.Between(40, WORLD_HEIGHT - 40);
+      } else {
+        const hot = getPelletSpawnHotspot(scene);
+        const spawnRadius = 1100;
+        const angle = Math.random() * Math.PI * 2;
+        const dist = Phaser.Math.Between(80, spawnRadius);
+        x = Phaser.Math.Clamp(hot.x + Math.cos(angle) * dist, 40, WORLD_WIDTH - 40);
+        y = Phaser.Math.Clamp(hot.y + Math.sin(angle) * dist, 40, WORLD_HEIGHT - 40);
+      }
+      const roll = Phaser.Math.Between(1, 100);
+      let tier;
+      if (roll <= PELLET_TIERS[0].weight) tier = PELLET_TIERS[0];
+      else if (roll <= PELLET_TIERS[0].weight + PELLET_TIERS[1].weight) tier = PELLET_TIERS[1];
+      else tier = PELLET_TIERS[2];
+
+      const r = tier.radius;
+      const color = Phaser.Utils.Array.GetRandom(PELLET_COLORS[tier.value]);
+      const pellet = scene.add.circle(x, y, r, color, 1);
+      pellet.setAlpha(0.9);
+      pellet.setData('value', tier.value);
+      scene.physics.add.existing(pellet);
+      pellet.body.setCircle(r); pellet.body.setImmovable(true); pellet.body.setAllowGravity(false);
+      scene.pelletGroup.add(pellet);
+    }
+
+    function collectPellet(scene, pellet, who) {
+      if (!scene.gameStarted) return;
+      if (!pellet.active) return;
+      const val = pellet.getData('value') || 1;
+      const gain = val * (ENERGY_MAX / 100);
+      if (who === 'player') {
+        if (scene.energy >= ENERGY_MAX) return;
+        pellet.destroy(); spawnPellet(scene);
+        scene.energy = Math.min(ENERGY_MAX, scene.energy + gain);
+        scene.playerPelletCount = Phaser.Math.Clamp(Math.floor(scene.energy), 0, 100);
+        scene.playerPelletsCollected++;
+        if (scene.playerPelletsCollected % 2 === 0) scene.playerScore++;
+      } else {
+        const b = scene.bots.find(x => x.id === who);
+        if (!b) return;
+        if (b.energy >= ENERGY_MAX) return;
+        pellet.destroy(); spawnPellet(scene);
+        b.energy = Math.min(ENERGY_MAX, b.energy + gain);
+        b.pelletsCollected++;
+        if (b.pelletsCollected % 2 === 0) b.score++;
+      }
+    }
+
+    function playPlayerKingSound() {
+      const kingSound = new Audio(PLAYER_KING_SOUND_PATH);
+      kingSound.volume = 0.9;
+      kingSound.play().catch(() => {
+        // Ignore playback errors and continue gameplay.
+      });
+    }
+
+    function playPlayerBoxSound() {
+      const boxSound = new Audio(PLAYER_BOX_SOUND_PATH);
+      boxSound.volume = 0.9;
+      boxSound.play().catch(() => {
+        // Ignore playback errors and continue gameplay.
+      });
+    }
+
+    function pickUpCrown(scene, who) {
+      if (!scene.gameStarted) return;
+      if (scene.crownHolder) return;
+      if (!scene.firstCrownGrabbed) {
+        scene.firstCrownGrabbed = true;
+        addScore(scene, who, 50);
+      }
+      scene.crownHolder = who;
+      scene.auraShieldBroken = false;
+      scene.crownImmunityUntil = scene.time.now + IMMUNITY_DURATION;
+      scene.crownHoldStart = scene.time.now;
+      scene.legendaryKing = false;
+      if (scene.mysteryBoxSpawnAt === 0) scene.mysteryBoxSpawnAt = scene.time.now + 5000;
+      scene.crown.setVisible(false);
+      scene.crown.body.enable = false;
+      if (who === 'player') playPlayerKingSound();
+      applyShockwave(scene, who);
+    }
+
+    function pickReplayMimeType() {
+      if (!window.MediaRecorder) return '';
+      const candidates = [
+        'video/mp4;codecs="avc1.42E01E,mp4a.40.2"',
+        'video/mp4',
+        'video/webm;codecs=vp9',
+        'video/webm;codecs=vp8',
+        'video/webm'
+      ];
+      for (const t of candidates) {
+        if (MediaRecorder.isTypeSupported(t)) return t;
+      }
+      return '';
+    }
+
+    function drawTikTokFrame(scene) {
+      if (!scene._replayTikTokCtx || !scene.game || !scene.game.canvas) return;
+      const src = scene.game.canvas;
+      const dstCanvas = scene._replayTikTokCanvas;
+      const ctx = scene._replayTikTokCtx;
+      const outW = dstCanvas.width;
+      const outH = dstCanvas.height;
+      const srcW = src.width;
+      const srcH = src.height;
+      if (!srcW || !srcH) return;
+
+      try {
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, outW, outH);
+        // Capture the full game frame (no TikTok crop).
+        ctx.drawImage(src, 0, 0, srcW, srcH, 0, 0, outW, outH);
+      } catch (_e) {
+        // Some browsers may block direct blit from the WebGL canvas intermittently.
+      }
+    }
+
+    function setupReplayRecorder(scene) {
+      scene._replayCaptureSupported = false;
+      scene._replayRecorder = null;
+      scene._replayStream = null;
+      scene._replayChunks = [];
+      scene._replayBlob = null;
+      scene._replayMimeType = '';
+      scene._matchEndCaptureTs = 0;
+      scene._replayFinalCaptureStarted = false;
+      scene._replayTikTokCanvas = null;
+      scene._replayTikTokCtx = null;
+      scene._replayPostRenderHandler = null;
+      if (!scene.game || !scene.game.canvas || !window.MediaRecorder) return;
+
+      try {
+        const tiktokCanvas = document.createElement('canvas');
+        tiktokCanvas.width = scene.game.canvas.width || 1600;
+        tiktokCanvas.height = scene.game.canvas.height || 900;
+        tiktokCanvas.style.position = 'fixed';
+        tiktokCanvas.style.left = '-99999px';
+        tiktokCanvas.style.top = '-99999px';
+        tiktokCanvas.style.pointerEvents = 'none';
+        tiktokCanvas.style.opacity = '0';
+        document.body.appendChild(tiktokCanvas);
+        const tiktokCtx = tiktokCanvas.getContext('2d', { alpha: false });
+        if (!tiktokCtx || typeof tiktokCanvas.captureStream !== 'function') return;
+
+        scene._replayTikTokCanvas = tiktokCanvas;
+        scene._replayTikTokCtx = tiktokCtx;
+        scene._replayCaptureSupported = true;
+
+        scene._replayPostRenderHandler = () => {
+          drawTikTokFrame(scene);
+        };
+        scene._replayPostRenderHandler();
+        scene.game.events.on('postrender', scene._replayPostRenderHandler);
+      } catch (_e) {
+        scene._replayCaptureSupported = false;
+      }
+    }
+
+    function startFinalReplayCapture(scene) {
+      if (!scene._replayCaptureSupported) return;
+      if (scene._replayFinalCaptureStarted) return;
+      if (!scene._replayTikTokCanvas) return;
+
+      try {
+        const stream = scene._replayTikTokCanvas.captureStream(60);
+        const mimeType = pickReplayMimeType();
+        const options = mimeType ? { mimeType, videoBitsPerSecond: 8000000 } : { videoBitsPerSecond: 8000000 };
+        const recorder = new MediaRecorder(stream, options);
+        scene._replayStream = stream;
+        scene._replayRecorder = recorder;
+        scene._replayChunks = [];
+        scene._replayBlob = null;
+        scene._replayMimeType = recorder.mimeType || mimeType || 'video/webm';
+        scene._replayFinalCaptureStarted = true;
+
+        recorder.ondataavailable = (evt) => {
+          if (evt.data && evt.data.size > 0) scene._replayChunks.push(evt.data);
+        };
+        recorder.onstop = () => {
+          if (scene._replayChunks.length) {
+            const isMp4 = (scene._replayMimeType || '').includes('mp4');
+            const mime = isMp4 ? 'video/mp4' : 'video/webm';
+            scene._replayBlob = new Blob(scene._replayChunks, { type: mime });
+          }
+          if (scene._replayStream) {
+            scene._replayStream.getTracks().forEach((t) => t.stop());
+            scene._replayStream = null;
+          }
+        };
+
+        recorder.start();
+      } catch (_e) {
+        scene._replayFinalCaptureStarted = false;
+      }
+    }
+
+    function stopFinalReplayCapture(scene) {
+      if (!scene._replayRecorder) return;
+      if (scene._replayRecorder.state === 'inactive') return;
+      scene._replayRecorder.stop();
+    }
+
+    function cleanupReplayRecorder(scene) {
+      if (scene._replayPostRenderHandler && scene.game && scene.game.events) {
+        scene.game.events.off('postrender', scene._replayPostRenderHandler);
+        scene._replayPostRenderHandler = null;
+      }
+      stopFinalReplayCapture(scene);
+      if (scene._replayStream) {
+        scene._replayStream.getTracks().forEach((t) => t.stop());
+      }
+      scene._replayRecorder = null;
+      scene._replayStream = null;
+      scene._replayChunks = [];
+      scene._replayBlob = null;
+      if (scene._replayTikTokCanvas && scene._replayTikTokCanvas.parentNode) {
+        scene._replayTikTokCanvas.parentNode.removeChild(scene._replayTikTokCanvas);
+      }
+      scene._replayTikTokCanvas = null;
+      scene._replayTikTokCtx = null;
+    }
+
+    function exportLastReplayForShare(scene) {
+      if (!scene._replayCaptureSupported) return { ok: false, reason: 'unsupported' };
+      if (!scene._replayBlob || scene._replayBlob.size <= 0) return { ok: false, reason: 'processing' };
+      const isMp4 = (scene._replayMimeType || '').includes('mp4');
+      const mime = isMp4 ? 'video/mp4' : 'video/webm';
+      const blob = new Blob([scene._replayBlob], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = `crown-chase-last-10s-fullscreen.${isMp4 ? 'mp4' : 'webm'}`;
+      link.href = url;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      return { ok: true, ext: isMp4 ? 'MP4' : 'WEBM', vertical: false };
+    }
+
+    function boxPickupVFX(scene, wx, wy) {
+      const sparkColors = [0xffd700, 0xff44aa, 0x44ffaa, 0x44aaff, 0xffffff];
+      for (let i = 0; i < 14; i++) {
+        const a = (i / 14) * Math.PI * 2;
+        const c = Phaser.Utils.Array.GetRandom(sparkColors);
+        const spark = scene.add.circle(wx, wy, Phaser.Math.Between(3, 7), c, 1).setDepth(700);
+        const dist = Phaser.Math.Between(40, 110);
+        scene.tweens.add({
+          targets: spark,
+          x: wx + Math.cos(a) * dist,
+          y: wy + Math.sin(a) * dist,
+          alpha: 0, scale: 0.2,
+          duration: Phaser.Math.Between(400, 700),
+          ease: 'Quad.easeOut',
+          onComplete: () => spark.destroy()
+        });
+      }
+      const flash = scene.add.circle(wx, wy, 30, 0xffffff, 0.9).setDepth(699);
+      scene.tweens.add({
+        targets: flash, scale: 3, alpha: 0,
+        duration: 350, ease: 'Quad.easeOut',
+        onComplete: () => flash.destroy()
+      });
+      const ring = scene.add.circle(wx, wy, 10, 0xffd700, 0).setDepth(699).setStrokeStyle(3, 0xffd700, 1);
+      scene.tweens.add({
+        targets: ring, scale: 5, alpha: 0,
+        duration: 500, ease: 'Quad.easeOut',
+        onComplete: () => ring.destroy()
+      });
+    }
+
+    function spawnLateGameBonusBoxes(scene, count) {
+      for (let i = 0; i < count; i++) {
+        const x = Phaser.Math.Between(450, WORLD_WIDTH - 450);
+        const y = Phaser.Math.Between(450, WORLD_HEIGHT - 450);
+
+        const glow = scene.add.rectangle(x, y, 130, 130);
+        glow.setStrokeStyle(4, 0xff66cc, 0.45);
+        glow.setFillStyle(0xff44aa, 0.08);
+        glow.setDepth(4);
+
+        const box = scene.add.rectangle(x, y, 100, 100);
+        box.setStrokeStyle(5, 0xff44aa, 1);
+        box.setFillStyle(0xaa2288, 0.35);
+        box.setDepth(5);
+
+        const text = scene.add.text(x, y, '?', {
+          fontSize: '74px', fontStyle: 'bold', color: '#ffd1f1',
+          fontFamily: 'Arial', resolution: 2
+        }).setOrigin(0.5).setDepth(5);
+
+        const hitbox = scene.add.circle(x, y, 56, 0x000000, 0);
+        scene.physics.add.existing(hitbox);
+        hitbox.body.setCircle(56);
+        hitbox.body.setImmovable(true);
+        hitbox.body.setAllowGravity(false);
+        hitbox.body.enable = true;
+
+        const bonusBox = { glow, box, text, hitbox, active: true };
+        scene.bonusBoxes.push(bonusBox);
+
+        scene.physics.add.overlap(scene.player, hitbox, () => collectLateGameBonusBox(scene, 'player', bonusBox));
+        scene.bots.forEach(b => {
+          scene.physics.add.overlap(b.circle, hitbox, () => collectLateGameBonusBox(scene, b.id, bonusBox));
+        });
+      }
+    }
+
+    function collectLateGameBonusBox(scene, who, bonusBox) {
+      if (!scene.gameStarted) return;
+      if (!bonusBox || !bonusBox.active) return;
+      if (who === 'player' && (scene.playerStoredPowerUp || scene._rouletteRunning)) return;
+      if (who !== 'player') {
+        const b = scene.bots.find(x => x.id === who);
+        if (!b) return;
+        if (scene.activePowerUps[who] || b.storedPowerUp) return;
+      }
+
+      bonusBox.active = false;
+      if (bonusBox.hitbox && bonusBox.hitbox.body) bonusBox.hitbox.body.enable = false;
+      const bx = bonusBox.box.x;
+      const by = bonusBox.box.y;
+      boxPickupVFX(scene, bx, by);
+      if (bonusBox.glow) bonusBox.glow.destroy();
+      if (bonusBox.box) bonusBox.box.destroy();
+      if (bonusBox.text) bonusBox.text.destroy();
+      if (bonusBox.hitbox) bonusBox.hitbox.destroy();
+
+      const effects = ['turbo', 'speed', 'magnet', 'rage', 'ghost'];
+      const effect = Phaser.Utils.Array.GetRandom(effects);
+
+      if (who === 'player') {
+        playPlayerBoxSound();
+        scene.playerStoredPowerUp = effect;
+        scene.playerPowerUpUntil = 0;
+        startPowerUpRoulette(scene, effect);
+      } else {
+        const b = scene.bots.find(x => x.id === who);
+        if (!b) return;
+        b.storedPowerUp = effect;
+      }
+    }
+
+    function startPowerUpRoulette(scene, finalEffect) {
+      const allEffects = ['turbo', 'speed', 'magnet', 'rage', 'ghost'];
+      const allIcons = { turbo: '⚡', speed: '💨', magnet: '🧲', rage: '💢', ghost: '👻' };
+      const allColors = { turbo: 0xffcc00, speed: 0x44ffaa, magnet: 0x44aaff, rage: 0xff2222, ghost: 0xccccff };
+
+      scene._rouletteRunning = true;
+      scene.powerUpBox.setStrokeStyle(3, 0xffffff, 1);
+
+      const totalTicks = 22;
+      let tick = 0;
+      let idx = Phaser.Math.Between(0, allEffects.length - 1);
+
+      const lastTicks = 6;
+      const finalIdx = allEffects.indexOf(finalEffect);
+      const startFinalAt = totalTicks - lastTicks;
+      let forcedIdx = (finalIdx - lastTicks + 1 + allEffects.length * 10) % allEffects.length;
+
+      scene.time.addEvent({
+        delay: 1, repeat: 0,
+        callback: function scheduleNext() {
+          const fast = 60;
+          const slow = 260;
+          let delay;
+          if (tick < totalTicks * 0.5) {
+            delay = fast;
+          } else {
+            const progress = (tick - totalTicks * 0.5) / (totalTicks * 0.5);
+            delay = fast + (slow - fast) * Math.pow(progress, 2.2);
+          }
+
+          scene.time.delayedCall(delay, () => {
+            let currentIdx;
+            if (tick >= startFinalAt) {
+              currentIdx = (forcedIdx + (tick - startFinalAt)) % allEffects.length;
+            } else {
+              idx = (idx + 1) % allEffects.length;
+              currentIdx = idx;
+            }
+
+            const e = allEffects[currentIdx];
+            scene.powerUpIcon.setText(allIcons[e]);
+            scene.powerUpBox.setStrokeStyle(3, allColors[e], 1);
+
+            scene.powerUpIcon.setScale(1.25);
+            scene.tweens.add({ targets: scene.powerUpIcon, scale: 1, duration: 80 });
+
+            tick++;
+            if (tick < totalTicks) {
+              scheduleNext();
+            } else {
+              scene.powerUpIcon.setText(allIcons[finalEffect]);
+              scene.powerUpBox.setStrokeStyle(3, allColors[finalEffect], 1);
+              scene._rouletteRunning = false;
+
+              scene.powerUpIcon.setScale(1.6);
+              scene.tweens.add({ targets: scene.powerUpIcon, scale: 1, duration: 300, ease: 'Back.easeOut' });
+
+              const flashRect = scene.add.rectangle(scene._puX, scene._puY, 64, 64, allColors[finalEffect], 0.5)
+                .setScrollFactor(0).setDepth(804);
+              scene.tweens.add({ targets: flashRect, alpha: 0, duration: 400, onComplete: () => flashRect.destroy() });
+            }
+          });
+        }
+      });
+    }
+
+    function collectMysteryBox(scene, who, boxType) {
+      if (!scene.gameStarted) return;
+      if (boxType === 'wild') {
+        if (!scene.wildBoxActive) return;
+      } else {
+        if (!scene.mysteryBoxActive) return;
+      }
+      if (who === 'player' && (scene.playerStoredPowerUp || scene._rouletteRunning)) return;
+      if (who !== 'player') {
+        const b = scene.bots.find(x => x.id === who);
+        if (!b) return;
+        if (scene.activePowerUps[who] || b.storedPowerUp) return;
+      }
+
+      const collector = getCircle(scene, who);
+      const bx = collector ? collector.x : WORLD_WIDTH / 2;
+      const by = collector ? collector.y : WORLD_HEIGHT / 2;
+
+      if (boxType === 'wild') {
+        hideWildBox(scene);
+        scene.wildBoxSpawnAt = scene.time.now + 5000;
+      } else {
+        hideMysteryBox(scene);
+        scene.mysteryBoxSpawnAt = scene.time.now + 5000;
+      }
+
+      boxPickupVFX(scene, bx, by);
+
+      const effects = ['turbo', 'speed', 'magnet', 'rage', 'ghost'];
+      let effect = Phaser.Utils.Array.GetRandom(effects);
+
+      if (who === 'player') {
+        playPlayerBoxSound();
+        scene.playerStoredPowerUp = effect;
+        scene.playerPowerUpUntil = 0;
+        startPowerUpRoulette(scene, effect);
+
+        const hc = getCircle(scene, who);
+        if (hc) {
+          const txt = scene.add.text(hc.x, hc.y - 50, '📦', {
+            fontSize: '32px', fontFamily: 'Segoe UI Emoji, Arial', resolution: 2
+          }).setOrigin(0.5).setDepth(700);
+          scene.tweens.add({
+            targets: txt, y: hc.y - 120, alpha: 0, scale: 1.5,
+            duration: 1000, ease: 'Quad.easeOut',
+            onComplete: () => txt.destroy()
+          });
+        }
+      } else {
+        const b = scene.bots.find(x => x.id === who);
+        if (!b) return;
+        b.storedPowerUp = effect;
+      }
+    }
+
+    function activatePowerUp(scene, who, effect) {
+      const labels = { turbo: '⚡ TURBO', speed: '💨 SPEED x3', magnet: '🧲 MAGNET', rage: '💢 RAGE', ghost: '👻 GHOST' };
+      const icons = { turbo: '⚡', speed: '💨', magnet: '🧲', rage: '💢', ghost: '👻' };
+      let label = labels[effect] || effect;
+      let duration = 3000;
+
+      switch (effect) {
+        case 'turbo':
+          if (who === 'player') { scene.energy = ENERGY_MAX; }
+          else { const b = scene.bots.find(x=>x.id===who); if(b) b.energy = ENERGY_MAX; }
+          duration = 3000;
+          break;
+        case 'speed':
+          duration = 5000;
+          if (who === 'player') {
+            scene._speedBoostUntil = scene.time.now + duration;
+          } else {
+            const b = scene.bots.find(x=>x.id===who);
+            if (b) b._speedBoostUntil = scene.time.now + duration;
+          }
+          break;
+        case 'magnet':
+          duration = 10000;
+          if (who === 'player') {
+            scene._magnetUntil = scene.time.now + duration;
+          } else {
+            const b = scene.bots.find(x=>x.id===who);
+            if (b) b._magnetUntil = scene.time.now + duration;
+          }
+          break;
+        case 'rage':
+          duration = 5000;
+          if (who === 'player') {
+            scene._rageUntil = scene.time.now + duration;
+          } else {
+            const b = scene.bots.find(x=>x.id===who);
+            if (b) b._rageUntil = scene.time.now + duration;
+          }
+          break;
+        case 'ghost':
+          duration = 5000;
+          if (who === 'player') {
+            scene._ghostUntil = scene.time.now + duration;
+          } else {
+            const b = scene.bots.find(x=>x.id===who);
+            if (b) b._ghostUntil = scene.time.now + duration;
+          }
+          break;
+      }
+
+      // Enregistrer le power-up actif (visible par tous)
+      const expireAt = scene.time.now + duration;
+      scene.activePowerUps[who] = { effect, icon: icons[effect] || '?', expireAt };
+
+      if (scene.powerUpFloatIcons[who]) scene.powerUpFloatIcons[who].destroy();
+      const hcIcon = getCircle(scene, who);
+      if (hcIcon) {
+        scene.powerUpFloatIcons[who] = scene.add.text(hcIcon.x, hcIcon.y, icons[effect] || '?', {
+          fontSize: '26px', fontFamily: 'Segoe UI Emoji, Arial', resolution: 4
+        }).setOrigin(0.5).setDepth(604);
+      }
+
+      // HUD du joueur humain
+      if (who === 'player') {
+        const colors = { turbo: 0xffcc00, speed: 0x44ffaa, magnet: 0x44aaff, rage: 0xff2222, ghost: 0xccccff };
+        scene.powerUpIcon.setText(icons[effect] || '?');
+        scene.powerUpBox.setStrokeStyle(3, colors[effect] || 0xaaaaaa, 1);
+        scene.playerPowerUpUntil = expireAt;
+      }
+
+      const hc = getCircle(scene, who);
+      if (hc) {
+        const txt = scene.add.text(hc.x, hc.y - 50, label, {
+          fontSize: '28px', fontStyle: 'bold', color: '#ffffff',
+          fontFamily: 'Arial', stroke: '#000000', strokeThickness: 4, resolution: 2
+        }).setOrigin(0.5).setDepth(700);
+        scene.tweens.add({
+          targets: txt, y: hc.y - 120, alpha: 0,
+          duration: 1200, ease: 'Quad.easeOut',
+          onComplete: () => txt.destroy()
+        });
+      }
+    }
+
+    function hideMysteryBox(scene) {
+      scene.mysteryBoxActive = false;
+      scene.mysteryBoxSpawnAt = 0;
+      scene.mysteryBox.setVisible(false);
+      scene.mysteryBoxText.setVisible(false);
+      scene.mysteryBoxGlow.setVisible(false);
+      scene.mysteryBoxHitbox.body.enable = false;
+    }
+
+    function hideWildBox(scene) {
+      scene.wildBoxActive = false;
+      scene.wildBox.setVisible(false);
+      scene.wildBoxText.setVisible(false);
+      scene.wildBoxGlow.setVisible(false);
+      scene.wildBoxHitbox.body.enable = false;
+    }
+
+    function breakShield(scene) {
+      scene.auraShieldBroken = true;
+      const hc = getCircle(scene, scene.crownHolder);
+      if (hc) {
+        const ring = scene.add.circle(hc.x, hc.y, 10, 0xcc44ff, 0.3);
+        ring.setStrokeStyle(4, 0xcc44ff, 0.8);
+        ring.setDepth(650);
+        scene.tweens.add({
+          targets: ring,
+          scaleX: 15, scaleY: 15,
+          alpha: 0, duration: 500, ease: 'Quad.easeOut',
+          onComplete: () => ring.destroy()
+        });
+      }
+    }
+
+    function isBoosting(scene, id) {
+      if (id === 'player') return scene.boostActive;
+      const b = scene.bots.find(x => x.id === id);
+      return b ? b.boostActive : false;
+    }
+
+    function isRaging(scene, id) {
+      if (id === 'player') return scene._rageUntil && scene.time.now < scene._rageUntil;
+      const b = scene.bots.find(x => x.id === id);
+      return b && b._rageUntil && scene.time.now < b._rageUntil;
+    }
+
+    function isGhosted(scene, id) {
+      if (id === 'player') return scene._ghostUntil && scene.time.now < scene._ghostUntil;
+      const b = scene.bots.find(x => x.id === id);
+      return b && b._ghostUntil && scene.time.now < b._ghostUntil;
+    }
+
+    function getEnergy(scene, id) {
+      if (id === 'player') return scene.energy;
+      const b = scene.bots.find(x => x.id === id);
+      return b ? b.energy : 0;
+    }
+
+    function addScore(scene, id, pts) {
+      if (id === 'player') scene.playerScore += pts;
+      else { const b = scene.bots.find(x => x.id === id); if (b) b.score += pts; }
+    }
+
+    function handleTagGeneric(scene, id1, id2) {
+      if (!scene.crownHolder) return;
+      let challenger;
+      if (scene.crownHolder === id1) challenger = id2;
+      else if (scene.crownHolder === id2) challenger = id1;
+      else return;
+
+      if (isGhosted(scene, challenger)) {
+        if (challenger === 'player') { scene._ghostUntil = 0; scene.player.alpha = 1; }
+        else { const b = scene.bots.find(x => x.id === challenger); if (b) { b._ghostUntil = 0; b.circle.alpha = 1; } }
+      }
+
+      if (scene.time.now < scene.crownImmunityUntil) return;
+      scene.pendingChallengers.push(challenger);
+    }
+
+    function resolveCrownConflicts(scene) {
+      if (scene.pendingChallengers.length === 0) return;
+      const oldHolder = scene.crownHolder;
+      if (!oldHolder) { scene.pendingChallengers = []; return; }
+
+      if (scene.pendingChallengers.length === 1) {
+        doTransfer(scene, scene.pendingChallengers[0], oldHolder);
+      } else {
+        let bestEnergy = -1;
+        let winners = [];
+        for (const cid of scene.pendingChallengers) {
+          const e = getEnergy(scene, cid);
+          if (e > bestEnergy) { bestEnergy = e; winners = [cid]; }
+          else if (e === bestEnergy) winners.push(cid);
+        }
+        doTransfer(scene, winners[0], oldHolder);
+      }
+      scene.pendingChallengers = [];
+    }
+
+    function doTransfer(scene, newHolderId, oldHolderId) {
+      const prevCircle = getCircle(scene, oldHolderId);
+      const futCircle = getCircle(scene, newHolderId);
+
+      scene.crownHolder = newHolderId;
+      scene.auraShieldBroken = false;
+      scene.crownImmunityUntil = scene.time.now + IMMUNITY_DURATION;
+      scene.crownHoldStart = scene.time.now;
+      scene.legendaryKing = false;
+      if (newHolderId === 'player') playPlayerKingSound();
+
+      if (prevCircle) { prevCircle.setScale(1); prevCircle.alpha = 1; }
+
+      if (prevCircle && futCircle && scene.crownTransferIcon) {
+        scene.crownTransferIcon.setVisible(true);
+        scene.crownTransferIcon.x = prevCircle.x;
+        scene.crownTransferIcon.y = prevCircle.y - (PLAYER_RADIUS * prevCircle.scale + 18);
+        scene.crownTransferIcon.alpha = 1;
+        scene.tweens.killTweensOf(scene.crownTransferIcon);
+        scene.tweens.add({
+          targets: scene.crownTransferIcon,
+          x: futCircle.x, y: futCircle.y - (PLAYER_RADIUS * futCircle.scale + 24),
+          alpha: 0, duration: 160, ease: 'Quad.easeOut',
+          onComplete: () => scene.crownTransferIcon.setVisible(false)
+        });
+      }
+
+      if (prevCircle && futCircle) {
+        let dx = prevCircle.x - futCircle.x;
+        let dy = prevCircle.y - futCircle.y;
+        const d = Math.sqrt(dx*dx + dy*dy) || 1;
+        dx /= d; dy /= d;
+        const kbOld = getKnockback(scene, oldHolderId);
+        kbOld.x = dx * 1040; kbOld.y = dy * 1040;
+      }
+
+      applyShockwave(scene, newHolderId);
+    }
+
+    function ejectCrown(scene, oldHolderId) {
+      const hc = getCircle(scene, oldHolderId);
+      if (hc) { hc.setScale(1); hc.alpha = 1; }
+      const cx = hc ? hc.x : WORLD_WIDTH / 2;
+      const cy = hc ? hc.y : WORLD_HEIGHT / 2;
+
+      scene.crownHolder = null;
+      scene.crownImmunityUntil = 0;
+      scene.legendaryKing = false;
+      scene.crownHoldStart = 0;
+
+      const angle = Math.random() * Math.PI * 2;
+      const nx = Phaser.Math.Clamp(cx + Math.cos(angle) * 500, 60, WORLD_WIDTH - 60);
+      const ny = Phaser.Math.Clamp(cy + Math.sin(angle) * 500, 60, WORLD_HEIGHT - 60);
+
+      scene.crown.body.reset(nx, ny);
+      scene.crown.setVisible(true);
+
+      applyShockwave(scene, null, cx, cy);
+    }
+
+    function applyShockwave(scene, holderId, cx, cy) {
+      const center = holderId ? getCircle(scene, holderId) : null;
+      const sx = center ? center.x : (cx || 0);
+      const sy = center ? center.y : (cy || 0);
+
+      const allIds = ['player', ...scene.bots.map(b => b.id)];
+      for (const eid of allIds) {
+        if (eid === holderId) continue;
+        const ec = getCircle(scene, eid);
+        if (!ec) continue;
+        const dx = ec.x - sx, dy = ec.y - sy;
+        const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+        if (dist > SHOCKWAVE_RADIUS) continue;
+        const strength = SHOCKWAVE_FORCE * (1 - dist / SHOCKWAVE_RADIUS);
+        const kb = getKnockback(scene, eid);
+        kb.x += (dx / dist) * strength;
+        kb.y += (dy / dist) * strength;
+      }
+
+      const ring = scene.add.circle(sx, sy, 10, 0xffffff, 0.15);
+      ring.setStrokeStyle(3, 0xffd700, 0.7);
+      ring.setDepth(650);
+      scene.tweens.add({
+        targets: ring,
+        scaleX: SHOCKWAVE_RADIUS / 10,
+        scaleY: SHOCKWAVE_RADIUS / 10,
+        alpha: 0, duration: 350, ease: 'Quad.easeOut',
+        onComplete: () => ring.destroy()
+      });
+    }
+
+    function updateHolderVisuals(scene) {
+      const holder = scene.crownHolder;
+      if (!holder) {
+        scene.holderRing.setVisible(false);
+        scene.crownIcon.setVisible(false);
+        scene.immunityAura.setVisible(false);
+        scene.holderNameText.setVisible(false);
+        return;
+      }
+      const holderCircle = getCircle(scene, holder);
+      if (!holderCircle) return;
+      const holderGhosted = isGhosted(scene, holder);
+      const s = holderCircle.scale;
+      const hd = Math.round(s * 100);
+      scene.holderRing.setDepth(hd + 1);
+      scene.crownIcon.setDepth(hd + 3);
+      scene.immunityAura.setDepth(hd - 1);
+      scene.holderRing.setVisible(!holderGhosted);
+      scene.holderRing.x = holderCircle.x;
+      scene.holderRing.y = holderCircle.y;
+      scene.holderRing.setScale(s);
+      const offset = PLAYER_RADIUS * s + 22 * s;
+      scene.crownIcon.x = holderCircle.x;
+      scene.crownIcon.y = holderCircle.y - offset;
+      if (scene.legendaryKing && !holderGhosted) {
+        const pulse = 0.6 + 0.15 * Math.sin(scene.time.now * 0.008);
+        scene.crownIcon.setScale(s * pulse);
+      } else {
+        scene.crownIcon.setScale(s * 0.6);
+      }
+      scene.crownIcon.setVisible(!holderGhosted);
+      const isImmune = scene.time.now < scene.crownImmunityUntil;
+      if (holderGhosted) {
+        holderCircle.alpha = (holder === 'player') ? 0.25 : 0;
+      } else if (isImmune) {
+        const blink = Math.floor(scene.time.now / 80) % 2 === 0;
+        holderCircle.alpha = blink ? 1 : 0.3;
+        scene.holderRing.setStrokeStyle(3, blink ? 0xffffff : 0xffd700, 1);
+      } else {
+        holderCircle.alpha = 1;
+        const ringColor = scene.legendaryKing ? 0xffa500 : 0xffd700;
+        scene.holderRing.setStrokeStyle(3, ringColor, 1);
+      }
+      if (!scene.auraShieldBroken && !holderGhosted && scene.timeLeft > 0) {
+        const auraScale = s + 100 / PLAYER_RADIUS;
+        scene.immunityAura.x = holderCircle.x;
+        scene.immunityAura.y = holderCircle.y;
+        scene.immunityAura.setScale(auraScale);
+        scene.immunityAura.setVisible(true);
+        const auraWorldRadius = PLAYER_RADIUS * auraScale;
+        for (const cr of scene.crosses) {
+          const cdx = holderCircle.x - cr.hitbox.x;
+          const cdy = holderCircle.y - cr.hitbox.y;
+          const cdist = Math.sqrt(cdx*cdx + cdy*cdy);
+          if (cdist < auraWorldRadius + 40) { breakShield(scene); break; }
+        }
+        const allIds = ['player', ...scene.bots.map(b => b.id)];
+        for (const eid of allIds) {
+          if (eid === holder) continue;
+          const ec = getCircle(scene, eid);
+          if (!ec) continue;
+          const dx = ec.x - holderCircle.x, dy = ec.y - holderCircle.y;
+          const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+          const entityRadius = PLAYER_RADIUS * ec.scale;
+          if (dist - entityRadius < auraWorldRadius) {
+            if (isRaging(scene, eid)) { breakShield(scene); break; }
+            if (!isBoosting(scene, eid)) {
+              const radX = dx / dist, radY = dy / dist;
+              const pushDist = auraWorldRadius + entityRadius + 5;
+              ec.body.reset(holderCircle.x + radX * pushDist, holderCircle.y + radY * pushDist);
+              const kb = getKnockback(scene, eid);
+              kb.x = radX * 1200;
+              kb.y = radY * 1200;
+            }
+          }
+        }
+      } else {
+        scene.immunityAura.setVisible(false);
+      }
+      const holderName = holder === 'player' ? playerPseudo : (scene.bots.find(x=>x.id===holder)||{}).name || '?';
+      scene.holderNameText.setText(holderName);
+      const holderDepth = Math.round(holderCircle.scale * 100) + 4;
+      scene.holderNameText.setDepth(holderDepth);
+      const holderEnergy = getEnergy(scene, holder);
+      if (holderEnergy >= 30) {
+        scene.holderNameText.setOrigin(0.5, 0.5);
+        scene.holderNameText.x = holderCircle.x;
+        scene.holderNameText.y = holderCircle.y;
+      } else {
+        scene.holderNameText.setOrigin(0.5, 0);
+        scene.holderNameText.x = holderCircle.x;
+        scene.holderNameText.y = holderCircle.y + PLAYER_RADIUS * s + 12 * s;
+      }
+      scene.holderNameText.setScale(s * 0.8);
+      if (scene._endGameAnimating) {
+        scene.holderNameText.setVisible(false);
+      } else {
+        scene.holderNameText.setVisible(!holderGhosted);
+      }
+    }
+
+    function endGame(scene) {
+      scene.timeLeft = 0;
+      scene._matchEndCaptureTs = performance.now();
+      scene.time.delayedCall(5400, () => stopFinalReplayCapture(scene));
+      if (scene.crownHolder) addScore(scene, scene.crownHolder, 1000);
+      scene.player.body.setVelocity(0,0);
+      scene.bots.forEach(b => b.circle.body.setVelocity(0,0));
+      scene.cameras.main.stopFollow();
+
+      const ranking = [
+        { name: playerPseudo, score: scene.playerScore, isPlayer: true }
+      ];
+      scene.bots.forEach(b => ranking.push({ name: b.name, score: b.score, isPlayer: false }));
+      ranking.sort((a, b) => b.score - a.score);
+      const winner = ranking[0];
+
+      const winnerCircle = winner.isPlayer ? scene.player :
+        (scene.bots.find(b => b.name === winner.name) || {}).circle;
+      const winX = winnerCircle ? winnerCircle.x : WORLD_WIDTH / 2;
+      const winY = winnerCircle ? winnerCircle.y : WORLD_HEIGHT / 2;
+      const animX = winX;
+      const animY = winY;
+
+      const cam = scene.cameras.main;
+
+      // Centrer la caméra sur le vainqueur
+      cam.pan(animX, animY, 800, 'Cubic.easeInOut');
+      scene.tweens.add({ targets: cam, zoom: 1.2, duration: 800, ease: 'Cubic.easeInOut' });
+
+      // Masquer le HUD king/holder pendant l'animation
+      scene._endGameAnimating = true;
+
+      // Cacher le petit pseudo blanc du jeu normal pour le gagnant
+      if (winner.isPlayer) {
+        scene.playerNameText.setVisible(false);
+      } else {
+        const wb = scene.bots.find(b => b.name === winner.name);
+        if (wb) wb.nameText.setVisible(false);
+      }
+      // Aussi cacher le holderNameText du jeu (sera remplacé par le gros pseudo)
+      scene.holderNameText.setVisible(false);
+
+      // Verrouiller le vainqueur au centre de l'animation
+      const keepWinnerAnchor = () => {
+        if (!winnerCircle || !winnerCircle.active) return;
+        winnerCircle.x = animX;
+        winnerCircle.y = animY;
+        if (winnerCircle.body) {
+          winnerCircle.body.reset(animX, animY);
+          winnerCircle.body.setVelocity(0, 0);
+        }
+      };
+      keepWinnerAnchor();
+
+      // Pseudo du vainqueur bien visible au centre de son rond
+      const winnerName = scene.add.text(animX, animY, winner.name, {
+        fontSize: '28px', fontStyle: 'bold', fontFamily: 'Arial',
+        color: '#39ff14', stroke: '#000000', strokeThickness: 5, resolution: 2
+      }).setOrigin(0.5).setDepth(970).setAlpha(0);
+      scene.tweens.add({ targets: winnerName, alpha: 1, duration: 400, ease: 'Quad.easeOut' });
+
+      // Synchroniser le contour doré/couronne à chaque frame pendant l'animation
+      const syncEvent = scene.time.addEvent({
+        delay: 16, loop: true,
+        callback: () => {
+          if (!scene._endGameAnimating) { syncEvent.remove(); return; }
+          keepWinnerAnchor();
+          winnerName.setPosition(animX, animY);
+          updateHolderVisuals(scene);
+        }
+      });
+
+      // Aura dorée pulsante
+      const aura1 = scene.add.circle(animX, animY, 80, 0xffd700, 0.3).setDepth(950);
+      const aura2 = scene.add.circle(animX, animY, 120, 0xffd700, 0.15).setDepth(949);
+      scene.tweens.add({ targets: aura1, scaleX: 3, scaleY: 3, alpha: 0, duration: 1200, repeat: -1, ease: 'Sine.easeOut' });
+      scene.tweens.add({ targets: aura2, scaleX: 4, scaleY: 4, alpha: 0, duration: 1600, repeat: -1, ease: 'Sine.easeOut', delay: 400 });
+
+      // --- Phase 1 : Aspiration (après 1s) ---
+      scene.time.delayedCall(1000, () => {
+        const victims = [];
+        if (!winner.isPlayer) {
+          victims.push({ circle: scene.player, glow: scene.playerGlow, name: scene.playerNameText });
+        }
+        scene.bots.forEach(b => {
+          if (b.name !== winner.name) {
+            victims.push({ circle: b.circle, glow: b.glow, name: b.nameText });
+          }
+        });
+
+        victims.forEach((v, i) => {
+          const delay = 50 + i * 80;
+          const dur = 700 + Math.random() * 200;
+          const targets = [v.circle, v.glow, v.name];
+          targets.forEach(t => {
+            if (!t || !t.active) return;
+            scene.tweens.add({
+              targets: t, x: animX, y: animY, scale: 0, alpha: 0,
+              duration: dur, delay, ease: 'Cubic.easeIn'
+            });
+          });
+
+          scene.time.delayedCall(delay + dur * 0.8, () => {
+            const color = v.circle.fillColor || 0xffffff;
+            for (let s = 0; s < 4; s++) {
+              const sp = scene.add.circle(
+                animX + (Math.random() - 0.5) * 10,
+                animY + (Math.random() - 0.5) * 10,
+                3 + Math.random() * 4, color, 0.9
+              ).setDepth(952);
+              scene.tweens.add({
+                targets: sp,
+                x: sp.x + (Math.random() - 0.5) * 40,
+                y: sp.y + (Math.random() - 0.5) * 40,
+                scale: 0, alpha: 0,
+                duration: 250 + Math.random() * 150,
+                ease: 'Quad.easeOut',
+                onComplete: () => sp.destroy()
+              });
+            }
+          });
+        });
+
+        if (winnerCircle) {
+          const startScale = winnerCircle.scale;
+          const endScale = startScale + 0.25;
+          const totalDur = 50 + victims.length * 80 + 900;
+          scene.tweens.add({
+            targets: winnerCircle, scale: endScale,
+            duration: totalDur, ease: 'Quad.easeOut'
+          });
+        }
+      });
+
+      // --- Phase 2 : Célébration (après 3s) ---
+      scene.time.delayedCall(3000, () => {
+        if (!winnerCircle) return;
+
+        const shockColors = [0xffd700, 0xffffff, 0xff8c00];
+        for (let w = 0; w < 3; w++) {
+          const ring = scene.add.circle(animX, animY, 15, shockColors[w], 0).setDepth(955)
+            .setStrokeStyle(4 - w, shockColors[w], 0.8);
+          scene.tweens.add({
+            targets: ring, scale: 8 + w * 4, alpha: 0,
+            duration: 700 + w * 200, delay: w * 150, ease: 'Quad.easeOut',
+            onComplete: () => ring.destroy()
+          });
+        }
+
+        for (let i = 0; i < 50; i++) {
+          const a = (i / 50) * Math.PI * 2;
+          const icons = ['✦', '★', '✨', '♛', '💎'];
+          const icon = icons[i % icons.length];
+          const dist = 80 + Math.random() * 200;
+          const s = scene.add.text(animX, animY, icon, {
+            fontSize: `${14 + Math.random() * 18}px`, color: '#ffd700', fontFamily: 'Arial'
+          }).setOrigin(0.5).setDepth(953).setAlpha(0);
+          scene.tweens.add({
+            targets: s,
+            x: animX + Math.cos(a) * dist,
+            y: animY + Math.sin(a) * dist,
+            alpha: { from: 1, to: 0 },
+            scale: { from: 1.2, to: 0.3 },
+            angle: Phaser.Math.Between(-180, 180),
+            duration: 800 + Math.random() * 500,
+            delay: Math.random() * 300,
+            ease: 'Quad.easeOut',
+            onComplete: () => s.destroy()
+          });
+        }
+
+        const baseScale = winnerCircle.scale;
+        scene.tweens.add({
+          targets: winnerCircle,
+          scale: baseScale * 1.15,
+          duration: 300, yoyo: true, repeat: 3, ease: 'Sine.easeInOut'
+        });
+      });
+
+      // --- Phase 3 : Podium (après 5.5s) ---
+      scene.time.delayedCall(5500, () => {
+        aura1.destroy();
+        aura2.destroy();
+        winnerName.destroy();
+        scene._endGameAnimating = false;
+        cam.zoom = 1;
+        cam.scrollX = 0;
+        cam.scrollY = 0;
+
+        // Cacher tous les éléments du jeu pour laisser le podium au 1er plan
+        if (winnerCircle) winnerCircle.setVisible(false);
+        scene.holderRing.setVisible(false);
+        scene.crownIcon.setVisible(false);
+        scene.immunityAura.setVisible(false);
+        scene.holderNameText.setVisible(false);
+        scene.playerGlow.setVisible(false);
+        scene.playerNameText.setVisible(false);
+        scene.bots.forEach(b => {
+          b.circle.setVisible(false);
+          b.glow.setVisible(false);
+          b.nameText.setVisible(false);
+        });
+
+        const overlay = scene.add.rectangle(GAME_WIDTH/2, GAME_HEIGHT/2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.9)
+          .setDepth(960).setScrollFactor(0);
+
+        const titleText = winner.isPlayer ? '👑 VICTOIRE !' : `👑 ${winner.name} remporte la partie !`;
+        const title = scene.add.text(GAME_WIDTH/2, GAME_HEIGHT * 0.12, titleText, {
+          fontSize: '42px', fontStyle: 'bold', color: '#ffd700',
+          fontFamily: 'Arial', stroke: '#000000', strokeThickness: 6, resolution: 2,
+          align: 'center'
+        }).setOrigin(0.5).setDepth(970).setScrollFactor(0).setAlpha(0);
+        scene.tweens.add({ targets: title, alpha: 1, y: title.y + 10, duration: 600, delay: 200, ease: 'Back.easeOut' });
+
+        const podiumY = GAME_HEIGHT * 0.30;
+        const medals = ['🥇', '🥈', '🥉'];
+        const podiumColors = ['#ffd700', '#c0c0c0', '#cd7f32'];
+        const podiumSizes = ['28px', '24px', '22px'];
+
+        for (let i = 0; i < Math.min(3, ranking.length); i++) {
+          const r = ranking[i];
+          const yOff = podiumY + i * 55;
+          const medal = scene.add.text(GAME_WIDTH/2 - 160, yOff, medals[i], {
+            fontSize: '38px', fontFamily: 'Arial', resolution: 2
+          }).setOrigin(0.5).setDepth(970).setScrollFactor(0).setAlpha(0);
+
+          const nameColor = r.isPlayer ? '#39ff14' : podiumColors[i];
+          const name = scene.add.text(GAME_WIDTH/2 - 90, yOff, r.name, {
+            fontSize: podiumSizes[i], fontStyle: 'bold', color: nameColor,
+            fontFamily: 'Arial', stroke: '#000000', strokeThickness: 4, resolution: 2
+          }).setOrigin(0, 0.5).setDepth(970).setScrollFactor(0).setAlpha(0);
+
+          const minGap = 70;
+          const ptsX = Phaser.Math.Clamp(name.x + name.width + minGap, GAME_WIDTH/2 + 120, GAME_WIDTH - 70);
+          const pts = scene.add.text(ptsX, yOff, `${r.score} pts`, {
+            fontSize: podiumSizes[i], color: '#e5e7eb',
+            fontFamily: 'Arial', stroke: '#000000', strokeThickness: 3, resolution: 2
+          }).setOrigin(0, 0.5).setDepth(970).setScrollFactor(0).setAlpha(0);
+
+          const d = 400 + i * 250;
+          scene.tweens.add({ targets: medal, alpha: 1, x: medal.x + 15, duration: 500, delay: d, ease: 'Back.easeOut' });
+          scene.tweens.add({ targets: name, alpha: 1, x: name.x + 15, duration: 500, delay: d + 80, ease: 'Back.easeOut' });
+          scene.tweens.add({ targets: pts, alpha: 1, x: pts.x - 15, duration: 500, delay: d + 160, ease: 'Back.easeOut' });
+        }
+
+        // --- Barre XP ---
+        const xpLevels = [0];
+        let _xpReq = 500;
+        for (let i = 0; i < 50; i++) { xpLevels.push(Math.round(_xpReq)); _xpReq *= 2.2; }
+        const xpBefore = scene._totalXP || 0;
+        const xpGained = scene.playerScore;
+        const xpAfter = xpBefore + xpGained;
+        scene._totalXP = xpAfter;
+        if (gameMode === 'guest') {
+          if (!guestProgress) guestProgress = loadGuestProgress();
+          guestProgress.totalXP = Math.max(0, xpAfter);
+          guestProgress.bestScore = Math.max(guestProgress.bestScore || 0, scene.playerScore || 0);
+          guestProgress.gamesPlayed = (guestProgress.gamesPlayed || 0) + 1;
+          guestProgress.lastPlayedAt = Date.now();
+          guestProgress.pseudo = playerPseudo || guestProgress.pseudo || '';
+          saveGuestProgress(guestProgress);
+          refreshGuestInfosPanel();
+        }
+
+        function getLevelInfo(xp) {
+          let lvl = 0;
+          for (let i = 0; i < xpLevels.length - 1; i++) {
+            if (xp >= xpLevels[i]) lvl = i; else break;
+          }
+          if (xp >= xpLevels[xpLevels.length - 1]) lvl = xpLevels.length - 1;
+          const floor = xpLevels[lvl] || 0;
+          const ceil = xpLevels[lvl + 1] || floor + 1000;
+          const progress = (xp - floor) / (ceil - floor);
+          return { lvl: lvl + 1, progress: Phaser.Math.Clamp(progress, 0, 1), floor, ceil };
+        }
+
+        const barY = GAME_HEIGHT * 0.62;
+        const barW = GAME_WIDTH * 0.6;
+        const barH = 44;
+        const barX = GAME_WIDTH / 2 - barW / 2;
+        const xpDelay = 1800;
+
+        const infoBefore = getLevelInfo(xpBefore);
+        const infoAfter = getLevelInfo(xpAfter);
+
+        // Niveau actuel à gauche
+        const lvlLabel = scene.add.text(barX - 18, barY, `Niv. ${infoBefore.lvl}`, {
+          fontSize: '20px', fontStyle: 'bold', color: '#777777',
+          fontFamily: 'Arial', stroke: '#000000', strokeThickness: 4, resolution: 2
+        }).setOrigin(1, 0.5).setDepth(971).setScrollFactor(0).setAlpha(0);
+
+        // Fond de la barre
+        const barBg = scene.add.graphics().setDepth(970).setScrollFactor(0).setAlpha(0);
+        barBg.fillStyle(0x111118, 0.95);
+        barBg.fillRoundedRect(barX, barY - barH/2, barW, barH, 14);
+        barBg.lineStyle(2, 0x444466, 1);
+        barBg.strokeRoundedRect(barX, barY - barH/2, barW, barH, 14);
+
+        // Remplissage (vide, dessiné uniquement par l'animation)
+        const barFill = scene.add.graphics().setDepth(971).setScrollFactor(0).setAlpha(0);
+        const pad = 5;
+        const innerH = barH - pad * 2;
+        const maxFillW = barW - pad * 2;
+        function drawFill(g, ratio) {
+          g.clear();
+          if (ratio <= 0) return;
+          const fw = Math.max(4, maxFillW * ratio);
+          const cr = Math.min(9, fw / 2);
+          g.fillStyle(0x39ff14, 1);
+          g.fillRoundedRect(barX + pad, barY - barH/2 + pad, fw, innerH, cr);
+          if (fw > 8) {
+            g.fillStyle(0x80ff80, 0.25);
+            g.fillRoundedRect(barX + pad + 1, barY - barH/2 + pad + 1, fw - 2, innerH * 0.4, { tl: Math.min(8, (fw-2)/2), tr: Math.min(8, (fw-2)/2), bl: 0, br: 0 });
+          }
+        }
+
+        // Texte XP au centre de la barre
+        const xpText = scene.add.text(barX + barW / 2, barY, `0 / ${infoBefore.ceil} XP`, {
+          fontSize: '20px', fontStyle: 'bold', color: '#ffffff',
+          fontFamily: 'Arial', stroke: '#000000', strokeThickness: 5, resolution: 2
+        }).setOrigin(0.5).setDepth(973).setScrollFactor(0).setAlpha(0);
+
+        // Niveau suivant à droite
+        const nextLvl = scene.add.text(barX + barW + 18, barY, `Niv. ${infoBefore.lvl + 1}`, {
+          fontSize: '20px', color: '#777777', fontStyle: 'bold',
+          fontFamily: 'Arial', stroke: '#000000', strokeThickness: 4, resolution: 2
+        }).setOrigin(0, 0.5).setDepth(971).setScrollFactor(0).setAlpha(0);
+
+        // "+ XP" au-dessus
+        const gainText = scene.add.text(GAME_WIDTH / 2, barY - 40, `+ ${xpGained} XP`, {
+          fontSize: '30px', fontStyle: 'bold', color: '#39ff14',
+          fontFamily: 'Arial', stroke: '#000000', strokeThickness: 6, resolution: 2
+        }).setOrigin(0.5).setDepth(973).setScrollFactor(0).setAlpha(0);
+
+        // Étape 1 : "+ X XP" apparaît
+        scene.tweens.add({ targets: gainText, alpha: 1, y: gainText.y - 8, duration: 600, delay: xpDelay, ease: 'Back.easeOut' });
+
+        // Étape 2 : La barre (fond vide) apparaît
+        scene.tweens.add({ targets: [barBg, lvlLabel, xpText, nextLvl], alpha: 1, duration: 600, delay: xpDelay + 1000 });
+
+        // Étape 3 : Le remplissage s'anime progressivement
+        const fillDuration = 2500;
+        const fillStartDelay = xpDelay + 2000;
+        scene.time.delayedCall(fillStartDelay, () => {
+          barFill.setAlpha(1);
+          let elapsed = 0;
+          const fillEvent = scene.time.addEvent({
+            delay: 16, loop: true,
+            callback: () => {
+              elapsed += 16;
+              const t = Math.min(elapsed / fillDuration, 1);
+              const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+              const currentRatio = eased * infoAfter.progress;
+              drawFill(barFill, currentRatio);
+              const currentXP = Math.round(eased * xpAfter);
+              const clamped = Phaser.Math.Clamp(currentXP, 0, xpAfter);
+              const info = getLevelInfo(clamped);
+              xpText.setText(`${clamped} / ${info.ceil} XP`);
+              lvlLabel.setText(`Niv. ${info.lvl}`);
+              nextLvl.setText(`Niv. ${info.lvl + 1}`);
+              if (t >= 1) {
+                fillEvent.remove();
+                drawFill(barFill, infoAfter.progress);
+                xpText.setText(`${xpAfter} / ${infoAfter.ceil} XP`);
+                lvlLabel.setText(`Niv. ${infoAfter.lvl}`);
+                nextLvl.setText(`Niv. ${infoAfter.lvl + 1}`);
+                if (infoAfter.lvl > infoBefore.lvl) {
+                  const lvlUpY = barY + (GAME_HEIGHT * 0.78 - barY) / 2;
+                  const lvlUp = scene.add.text(GAME_WIDTH / 2, lvlUpY, `🎉 Niveau ${infoAfter.lvl} atteint !`, {
+                    fontSize: '30px', fontStyle: 'bold', color: '#ffd700',
+                    fontFamily: 'Arial', stroke: '#000000', strokeThickness: 6, resolution: 2
+                  }).setOrigin(0.5).setDepth(973).setScrollFactor(0).setAlpha(0);
+                  scene.tweens.add({ targets: lvlUp, alpha: 1, y: lvlUp.y - 5, duration: 600, ease: 'Back.easeOut' });
+                  lvlLabel.setColor('#ffd700');
+                  scene.time.delayedCall(800, () => lvlLabel.setColor('#777777'));
+                }
+              }
+            }
+          });
+        });
+
+        const yourRank = ranking.findIndex(r => r.isPlayer) + 1;
+        const rankText = scene.add.text(GAME_WIDTH/2, GAME_HEIGHT * 0.78, `Classement : ${yourRank}${yourRank === 1 ? 'er' : 'e'} / ${ranking.length}`, {
+          fontSize: '22px', color: '#b0b0b0', fontStyle: 'bold',
+          fontFamily: 'Arial', stroke: '#000000', strokeThickness: 4, resolution: 2
+        }).setOrigin(0.5).setDepth(970).setScrollFactor(0).setAlpha(0);
+        scene.tweens.add({ targets: rankText, alpha: 1, duration: 600, delay: 2000 });
+
+        // Bouton Replay (coins arrondis via Graphics)
+        const btnY = GAME_HEIGHT * 0.88;
+        const btnW = 260, btnH = 60, btnR = 16;
+        const menuBtnW = Phaser.Math.Clamp(Math.round(GAME_WIDTH * 0.34), 420, 640);
+        const menuBtnX = GAME_WIDTH/2 - (menuBtnW/2 + btnW/2 + 30);
+        const btnGfx = scene.add.graphics().setDepth(971).setScrollFactor(0).setAlpha(0);
+        const menuBtnGfx = scene.add.graphics().setDepth(971).setScrollFactor(0).setAlpha(0);
+        function drawBtn(color) {
+          btnGfx.clear();
+          btnGfx.fillStyle(color, 1);
+          btnGfx.fillRoundedRect(GAME_WIDTH/2 - btnW/2, btnY - btnH/2, btnW, btnH, btnR);
+          btnGfx.lineStyle(3, 0x20cc20, 1);
+          btnGfx.strokeRoundedRect(GAME_WIDTH/2 - btnW/2, btnY - btnH/2, btnW, btnH, btnR);
+        }
+        function drawMenuBtn(color) {
+          menuBtnGfx.clear();
+          menuBtnGfx.fillStyle(color, 1);
+          menuBtnGfx.fillRoundedRect(menuBtnX - menuBtnW/2, btnY - btnH/2, menuBtnW, btnH, btnR);
+          menuBtnGfx.lineStyle(3, 0x2d8cff, 1);
+          menuBtnGfx.strokeRoundedRect(menuBtnX - menuBtnW/2, btnY - btnH/2, menuBtnW, btnH, btnR);
+        }
+        drawMenuBtn(0x4da3ff);
+        drawBtn(0x39ff14);
+        const menuBtnText = scene.add.text(menuBtnX, btnY, 'MENU PRINCIPAL', {
+          fontSize: '24px', fontStyle: 'bold', color: '#000000',
+          fontFamily: 'Arial', resolution: 4
+        }).setOrigin(0.5).setDepth(973).setScrollFactor(0).setAlpha(0);
+        const btnText = scene.add.text(GAME_WIDTH/2, btnY, 'REJOUER', {
+          fontSize: '30px', fontStyle: 'bold', color: '#000000',
+          fontFamily: 'Arial', resolution: 2
+        }).setOrigin(0.5).setDepth(973).setScrollFactor(0).setAlpha(0);
+
+        const menuBtnHit = scene.add.rectangle(menuBtnX, btnY, menuBtnW, btnH, 0x000000, 0)
+          .setDepth(974).setScrollFactor(0).setInteractive({ useHandCursor: true });
+        const btnHit = scene.add.rectangle(GAME_WIDTH/2, btnY, btnW, btnH, 0x000000, 0)
+          .setDepth(974).setScrollFactor(0).setInteractive({ useHandCursor: true });
+
+        scene.tweens.add({ targets: [menuBtnGfx, menuBtnText, btnGfx, btnText], alpha: 1, duration: 600, delay: xpDelay + 4800, ease: 'Back.easeOut' });
+
+        menuBtnHit.on('pointerover', () => {
+          drawMenuBtn(0x66b3ff);
+          menuBtnText.setScale(1.03);
+        });
+        menuBtnHit.on('pointerout', () => {
+          drawMenuBtn(0x4da3ff);
+          menuBtnText.setScale(1);
+        });
+        menuBtnHit.on('pointerdown', () => {
+          window.location.reload();
+        });
+
+        btnHit.on('pointerover', () => {
+          drawBtn(0x50ff50);
+          btnText.setScale(1.05);
+        });
+        btnHit.on('pointerout', () => {
+          drawBtn(0x39ff14);
+          btnText.setScale(1);
+        });
+        btnHit.on('pointerdown', () => {
+          scene.scene.restart();
+        });
+
+        // Bouton "Share my Win" (uniquement si le joueur humain a gagné)
+        if (winner.isPlayer) {
+          const shareY = btnY;
+          const shareW = 220, shareH = 50, shareR = 14;
+          const shareX = GAME_WIDTH/2 + (btnW/2 + shareW/2 + 30);
+          const shareGfx = scene.add.graphics().setDepth(971).setScrollFactor(0).setAlpha(0);
+          function drawShare(color) {
+            shareGfx.clear();
+            shareGfx.fillStyle(color, 1);
+            shareGfx.fillRoundedRect(shareX - shareW/2, shareY - shareH/2, shareW, shareH, shareR);
+            shareGfx.lineStyle(3, 0xccaa00, 1);
+            shareGfx.strokeRoundedRect(shareX - shareW/2, shareY - shareH/2, shareW, shareH, shareR);
+          }
+          drawShare(0xffd700);
+          const shareText = scene.add.text(shareX, shareY, 'PARTAGER MA VICTOIRE', {
+            fontSize: '18px', fontStyle: 'bold', color: '#000000',
+            fontFamily: 'Arial', resolution: 2
+          }).setOrigin(0.5).setDepth(973).setScrollFactor(0).setAlpha(0);
+
+          const shareHit = scene.add.rectangle(shareX, shareY, shareW, shareH, 0x000000, 0)
+            .setDepth(974).setScrollFactor(0).setInteractive({ useHandCursor: true });
+
+          scene.tweens.add({ targets: [shareGfx, shareText], alpha: 1, duration: 600, delay: xpDelay + 4800, ease: 'Back.easeOut' });
+
+          shareHit.on('pointerover', () => {
+            drawShare(0xffe040);
+            shareText.setScale(1.05);
+          });
+          shareHit.on('pointerout', () => {
+            drawShare(0xffd700);
+            shareText.setScale(1);
+          });
+          shareHit.on('pointerdown', () => {
+            const result = exportLastReplayForShare(scene);
+            if (result.ok) {
+              shareText.setText(`✓ ${result.ext} PLEIN ECRAN`);
+            } else {
+              shareText.setText(result.reason === 'processing' ? 'PRÉPARATION...' : 'VIDÉO NON DISPO');
+            }
+            scene.time.delayedCall(1800, () => shareText.setText('PARTAGER MA VICTOIRE'));
+          });
+        }
+      });
+
+      scene.targetName.setText('Fin');
+    }
+  </script>
+</body>
+</html>
