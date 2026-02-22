@@ -1540,10 +1540,10 @@
       scene.joyVecX = 0;
       scene.joyVecY = 0;
       scene.lastMobileTapTime = 0;
-      scene._boostHudX = Math.max(80, Math.round(GAME_WIDTH * 0.09));
-      scene._boostHudY = GAME_HEIGHT - Math.max(56, Math.round(GAME_HEIGHT * 0.14));
-      scene._joyHudX = GAME_WIDTH - Math.max(80, Math.round(GAME_WIDTH * 0.09));
-      scene._joyHudY = GAME_HEIGHT - Math.max(56, Math.round(GAME_HEIGHT * 0.14));
+      scene._boostHudX = Math.max(70, Math.round(GAME_WIDTH * 0.07));
+      scene._boostHudY = GAME_HEIGHT - Math.max(46, Math.round(GAME_HEIGHT * 0.11));
+      scene._joyHudX = GAME_WIDTH - Math.max(70, Math.round(GAME_WIDTH * 0.08));
+      scene._joyHudY = GAME_HEIGHT - Math.max(46, Math.round(GAME_HEIGHT * 0.11));
       // Allow multi-touch: one finger joystick, one boost, one extra.
       this.input.addPointer(3);
 
@@ -1672,8 +1672,8 @@
 
       // --- HUD Power-up (mobile: above joystick on right side; desktop: bottom-right) ---
       const puSize = mob ? 48 : 64;
-      const puX = mob ? (GAME_WIDTH - Math.max(80, Math.round(GAME_WIDTH * 0.09))) : (GAME_WIDTH - 55);
-      const puY = mob ? (GAME_HEIGHT - Math.max(56, Math.round(GAME_HEIGHT * 0.14)) - Math.max(74, Math.round(GAME_HEIGHT * 0.22))) : (GAME_HEIGHT - 55);
+      const puX = mob ? (GAME_WIDTH - Math.max(34, Math.round(GAME_WIDTH * 0.04))) : (GAME_WIDTH - 55);
+      const puY = mob ? (GAME_HEIGHT - Math.max(46, Math.round(GAME_HEIGHT * 0.11)) - Math.max(74, Math.round(GAME_HEIGHT * 0.22))) : (GAME_HEIGHT - 55);
       scene.powerUpBox = this.add.rectangle(puX, puY, puSize, puSize);
       scene.powerUpBox.setStrokeStyle(mob ? 2 : 3, 0xaaaaaa, 0.7);
       scene.powerUpBox.setFillStyle(0x000000, 0);
@@ -1688,7 +1688,7 @@
       scene.joyBase = null;
       scene.joyKnob = null;
       if (mob) {
-        const boostR = Math.max(46, Math.round(GAME_HEIGHT * 0.13));
+        const boostR = Math.max(46, Math.round(GAME_HEIGHT * 0.13 * 1.8));
         scene.boostBtn = this.add.circle(scene._boostHudX, scene._boostHudY, boostR, 0x22c55e, 0.22)
           .setStrokeStyle(3, 0x39ff14, 0.9).setScrollFactor(0).setDepth(804);
         scene.boostBtnLabel = this.add.text(scene._boostHudX, scene._boostHudY, 'BOOST', {
@@ -1783,7 +1783,7 @@
       const lbTitleFontSize = mob ? '14px' : '22px';
       const lbRowH = mob ? 16 : 22;
       const lbW = mob ? 140 : 200;
-      const lbX = GAME_WIDTH - (mob ? 14 : 20);
+      const lbX = GAME_WIDTH - (mob ? 4 : 20);
       const lbY = Math.round(mob ? GAME_HEIGHT * 0.24 : GAME_HEIGHT / 2 - 140);
       const lbBgH = mob ? (lbCount * lbRowH + 50) : 280;
       scene._lbY = lbY;
@@ -2324,7 +2324,7 @@
         scene.joyKnob.y = joyKnobScreenY;
         scene.joyKnob.setScale(invZ);
       }
-      const _lbX = GAME_WIDTH - (_mob ? 14 : 20);
+      const _lbX = GAME_WIDTH - (_mob ? 4 : 20);
       const _lbW = scene._lbW || (_mob ? 140 : 200);
       const _lbRowH = scene._lbRowH || (_mob ? 16 : 22);
       const _lbCount = scene._lbCount || (_mob ? 5 : 10);
