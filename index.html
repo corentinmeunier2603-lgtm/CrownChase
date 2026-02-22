@@ -1540,10 +1540,10 @@
       scene.joyVecX = 0;
       scene.joyVecY = 0;
       scene.lastMobileTapTime = 0;
-      scene._boostHudX = Math.max(90, Math.round(GAME_WIDTH * 0.1));
-      scene._boostHudY = GAME_HEIGHT - Math.max(68, Math.round(GAME_HEIGHT * 0.22));
-      scene._joyHudX = GAME_WIDTH - Math.max(90, Math.round(GAME_WIDTH * 0.1));
-      scene._joyHudY = GAME_HEIGHT - Math.max(86, Math.round(GAME_HEIGHT * 0.26));
+      scene._boostHudX = Math.max(80, Math.round(GAME_WIDTH * 0.09));
+      scene._boostHudY = GAME_HEIGHT - Math.max(56, Math.round(GAME_HEIGHT * 0.14));
+      scene._joyHudX = GAME_WIDTH - Math.max(80, Math.round(GAME_WIDTH * 0.09));
+      scene._joyHudY = GAME_HEIGHT - Math.max(56, Math.round(GAME_HEIGHT * 0.14));
       // Allow multi-touch: one finger joystick, one boost, one extra.
       this.input.addPointer(3);
 
@@ -1670,10 +1670,10 @@
       scene._barTop = barTop; scene._barBottom = barBottom;
       scene._barHeight = barHeight;
 
-      // --- HUD Power-up (carré bas-droite, ajusté mobile) ---
+      // --- HUD Power-up (mobile: above joystick on right side; desktop: bottom-right) ---
       const puSize = mob ? 48 : 64;
-      const puX = mob ? (GAME_WIDTH / 2) : (GAME_WIDTH - 55);
-      const puY = mob ? (GAME_HEIGHT - 36) : (GAME_HEIGHT - 55);
+      const puX = mob ? (GAME_WIDTH - Math.max(80, Math.round(GAME_WIDTH * 0.09))) : (GAME_WIDTH - 55);
+      const puY = mob ? (GAME_HEIGHT - Math.max(56, Math.round(GAME_HEIGHT * 0.14)) - Math.max(74, Math.round(GAME_HEIGHT * 0.22))) : (GAME_HEIGHT - 55);
       scene.powerUpBox = this.add.rectangle(puX, puY, puSize, puSize);
       scene.powerUpBox.setStrokeStyle(mob ? 2 : 3, 0xaaaaaa, 0.7);
       scene.powerUpBox.setFillStyle(0x000000, 0);
@@ -1829,33 +1829,40 @@
         fontFamily: 'Arial', stroke: '#000000', strokeThickness: 6, resolution: 2
       }).setOrigin(0.5).setDepth(999).setScrollFactor(0).setAlpha(0.95);
 
-      const countdownNum = this.add.text(cx, cy, '3', {
-        fontSize: '280px', fontStyle: 'bold', color: '#ffd700',
-        fontFamily: 'Arial', stroke: '#000000', strokeThickness: 6, resolution: 2
-      }).setOrigin(0.5).setDepth(999).setScrollFactor(0).setAlpha(0);
       scene.waitingTitle = waitingTitle;
       scene.waitingCount = waitingCount;
-      scene.countdownNum = countdownNum;
+      scene.countdownNum = null;
       scene._countdownCx = cx;
       scene._countdownCy = cy;
+      scene._countdownTexts = [];
 
       const launchCountdown = (baseDelay) => {
-        const showNum = (val, delay) => {
+        const makeNum = (val, delay, color, size, dur) => {
           this.time.delayedCall(baseDelay + delay, () => {
-            countdownNum.setText(val).setAlpha(0.35).setScale(2.5).setRotation(0).setColor('#ffd700').setFontSize(280);
-            scene.tweens.add({ targets: countdownNum, scale: 1, alpha: 0.3, duration: 500, ease: 'Cubic.easeOut' });
-            scene.tweens.add({ targets: countdownNum, alpha: 0, delay: 550, duration: 350 });
+            const t = scene.add.text(cx, cy, val, {
+              fontSize: size + 'px', fontStyle: 'bold', color: color,
+              fontFamily: 'Arial', stroke: '#000000', strokeThickness: 6, resolution: 2
+            }).setOrigin(0.5).setDepth(999).setScrollFactor(0).setAlpha(0.35).setScale(2.5);
+            scene._countdownTexts.push(t);
+            scene.countdownNum = t;
+            scene.tweens.add({ targets: t, scale: 1, alpha: 0.3, duration: 500, ease: 'Cubic.easeOut' });
+            scene.tweens.add({ targets: t, alpha: 0, delay: 550, duration: 350, onComplete: () => { t.destroy(); } });
           });
         };
 
-        showNum('3', 300);
-        showNum('2', 1300);
-        showNum('1', 2300);
+        makeNum('3', 300, '#ffd700', 280);
+        makeNum('2', 1300, '#ffd700', 280);
+        makeNum('1', 2300, '#ffd700', 280);
 
         // GO!
         this.time.delayedCall(baseDelay + 3300, () => {
-          countdownNum.setText('GO!').setColor('#39ff14').setFontSize(320).setAlpha(0.5).setScale(3).setRotation(0);
-          scene.tweens.add({ targets: countdownNum, scale: 1, alpha: 0.45, duration: 300, ease: 'Back.easeOut' });
+          const goText = scene.add.text(cx, cy, 'GO!', {
+            fontSize: '320px', fontStyle: 'bold', color: '#39ff14',
+            fontFamily: 'Arial', stroke: '#000000', strokeThickness: 6, resolution: 2
+          }).setOrigin(0.5).setDepth(999).setScrollFactor(0).setAlpha(0.5).setScale(3);
+          scene._countdownTexts.push(goText);
+          scene.countdownNum = goText;
+          scene.tweens.add({ targets: goText, scale: 1, alpha: 0.45, duration: 300, ease: 'Back.easeOut' });
 
           for (let i = 0; i < 20; i++) {
             const a = (i / 20) * Math.PI * 2;
@@ -1871,28 +1878,29 @@
               onComplete: () => spark.destroy()
             });
           }
-
           scene.cameras.main.shake(200, 0.008);
+
+          // Destroy GO after 700ms no matter what
+          setTimeout(() => {
+            if (goText && goText.active) { goText.destroy(); }
+          }, 700);
         });
 
-        // Cleanup & start
+        // Cleanup all countdown texts & start game
         this.time.delayedCall(baseDelay + 4100, () => {
-          if (countdownNum && countdownNum.active) {
-            scene.tweens.killTweensOf(countdownNum);
-            countdownNum.setAlpha(0);
-            countdownNum.destroy();
-          }
+          scene._countdownTexts.forEach(t => { if (t && t.active) { scene.tweens.killTweensOf(t); t.destroy(); } });
+          scene._countdownTexts = [];
           scene.countdownNum = null;
           scene.gameStarted = true;
         });
-        // Hard safety: native setTimeout to guarantee GO removal regardless of tween state.
-        const sceneRef = this;
+        // Hard safety: destroy everything after generous timeout
         setTimeout(() => {
-          if (sceneRef.countdownNum && sceneRef.countdownNum.active) {
-            sceneRef.countdownNum.destroy();
-            sceneRef.countdownNum = null;
+          if (scene._countdownTexts) {
+            scene._countdownTexts.forEach(t => { if (t && t.active) t.destroy(); });
+            scene._countdownTexts = [];
           }
-        }, baseDelay + 5000);
+          scene.countdownNum = null;
+        }, baseDelay + 6000);
       };
 
       let fakeLobbyDurationMs = Phaser.Math.Between(5000, 8000);
@@ -1952,7 +1960,9 @@
           const cy = GAME_HEIGHT / 2;
           fixHud(scene.waitingTitle, cx, cy - 40);
           fixHud(scene.waitingCount, cx, cy + 18);
-          fixHud(scene.countdownNum, cx, cy);
+          if (scene._countdownTexts) {
+            scene._countdownTexts.forEach(t => fixHud(t, cx, cy));
+          }
         }
         return;
       }
