@@ -285,57 +285,107 @@
     @media (max-width: 1024px) and (orientation: landscape) {
       #menu-screen {
         justify-content: flex-start;
-        padding: 10px 10px 18px;
+        padding: 8px 8px 12px;
       }
       #menu-screen .title {
-        font-size: 34px;
-        margin-top: 6px;
-        margin-bottom: 4px;
+        font-size: min(6vw, 32px);
+        margin-top: 4px;
+        margin-bottom: 2px;
         letter-spacing: 1px;
       }
       #menu-screen .subtitle {
-        font-size: 14px;
-        margin-bottom: 16px;
+        font-size: min(2.8vw, 13px);
+        margin-bottom: 10px;
       }
       #menu-screen .mode-cards {
         width: 100%;
-        gap: 10px;
-        margin-bottom: 14px;
+        gap: 8px;
+        margin-bottom: 10px;
         justify-content: center;
       }
       .mode-card {
-        width: min(44vw, 250px);
-        padding: 16px 14px;
-        border-radius: 14px;
+        width: min(42vw, 220px);
+        padding: 12px 10px;
+        border-radius: 12px;
       }
-      .mode-card .mode-icon { font-size: 30px; margin-bottom: 8px; }
-      .mode-card .mode-title { font-size: 20px; margin-bottom: 6px; }
-      .mode-card .mode-desc { font-size: 12px; line-height: 1.35; }
-      .menu-input { width: min(44vw, 250px); font-size: 16px; padding: 11px 12px; }
-      .menu-btn { width: min(44vw, 250px); font-size: 17px; padding: 12px; }
-      .how-to-section { margin-top: 18px; padding-top: 16px; }
-      .how-to-label { font-size: 12px; letter-spacing: 2px; margin-bottom: 10px; }
-      .how-to-play { flex-wrap: wrap; justify-content: center; gap: 8px; padding: 0 6px; }
-      .step-card { width: 40vw; max-width: 170px; padding: 12px 10px; }
-      .step-icon { font-size: 24px; margin-bottom: 6px; }
-      .step-title { font-size: 12px; margin-bottom: 4px; }
-      .step-desc { font-size: 10.5px; line-height: 1.3; }
+      .mode-card .mode-icon { font-size: 24px; margin-bottom: 6px; }
+      .mode-card .mode-title { font-size: min(3.6vw, 18px); margin-bottom: 4px; }
+      .mode-card .mode-desc { font-size: min(2.2vw, 11px); line-height: 1.3; }
+      .menu-input { width: min(42vw, 220px); font-size: min(3vw, 15px); padding: 9px 10px; border-radius: 10px; }
+      .menu-btn { width: min(42vw, 220px); font-size: min(3.2vw, 16px); padding: 10px; border-radius: 10px; }
+      #guest-panel, #compet-panel { gap: 10px; }
+      .how-to-section { margin-top: 12px; padding-top: 10px; }
+      .how-to-label { font-size: min(2vw, 11px); letter-spacing: 2px; margin-bottom: 8px; }
+      .how-to-play { flex-wrap: wrap; justify-content: center; gap: 6px; padding: 0 4px; }
+      .step-card { width: min(22vw, 130px); padding: 10px 6px 8px; }
+      .step-num { width: 20px; height: 20px; font-size: 11px; top: -10px; }
+      .step-icon { font-size: min(4vw, 22px); margin-bottom: 4px; margin-top: 2px; }
+      .step-title { font-size: min(2.2vw, 11px); margin-bottom: 3px; }
+      .step-desc { font-size: min(1.8vw, 9.5px); line-height: 1.25; }
       .step-connector { display: none; }
-      #lang-btn, #infos-btn {
-        top: 10px;
+      #controls-toggle-btn {
+        bottom: 8px; right: 8px;
         padding: 6px 10px;
-        font-size: 12px;
+        font-size: 11px;
+        border-radius: 10px;
       }
+      #controls-toggle-btn .ctrl-btn-icon { font-size: 16px; }
+      #controls-panel {
+        bottom: 46px; right: 8px;
+        width: min(360px, 78vw);
+        max-height: 50vh;
+        padding: 10px 12px;
+        border-radius: 10px;
+      }
+      .controls-grid { gap: 6px 12px; }
+      .ctrl-item { padding: 6px 8px; border-radius: 8px; gap: 8px; }
+      .ctrl-key { min-width: 36px; height: 28px; font-size: 11px; padding: 0 6px; border-radius: 6px; }
+      .ctrl-label { font-size: 11px; }
+      .controls-divider { font-size: 10px; padding: 8px 0 4px; letter-spacing: 2px; }
+      .powerup-grid { gap: 4px 12px; }
+      .pu-item { padding: 5px 8px; border-radius: 8px; gap: 6px; }
+      .pu-icon { font-size: 18px; min-width: 24px; }
+      .pu-info { font-size: 10px; }
+      .pu-info .pu-name { font-size: 11px; }
+      #lang-btn, #infos-btn {
+        top: 6px;
+        padding: 5px 8px;
+        font-size: 11px;
+        border-radius: 8px;
+      }
+      #infos-btn { left: 8px; }
+      #lang-btn { right: 8px; }
       #infos-panel {
-        top: 46px;
-        left: 10px;
-        width: min(320px, 68vw);
-        font-size: 12px;
+        top: 38px;
+        left: 8px;
+        width: min(280px, 60vw);
+        font-size: 11px;
+        padding: 10px;
+        border-radius: 10px;
       }
+      .infos-title { font-size: 12px; margin-bottom: 6px; }
+      .infos-row { font-size: 11px; padding: 5px 0; }
       #lang-dropdown {
-        top: 40px;
-        min-width: 150px;
+        top: 36px;
+        min-width: 140px;
+        border-radius: 10px;
       }
+      .lang-option { padding: 8px 12px; font-size: 12px; }
+      #orientation-lock-screen .orientation-icon { font-size: 40px; }
+      #orientation-lock-screen .orientation-title { font-size: 20px; }
+      #orientation-lock-screen .orientation-text { font-size: 14px; }
+      #orientation-lock-screen .orientation-card { padding: 18px 16px; }
+    }
+    @media (max-height: 420px) and (orientation: landscape) {
+      #menu-screen .title { font-size: min(5.5vw, 28px); }
+      #menu-screen .subtitle { font-size: min(2.4vw, 12px); margin-bottom: 6px; }
+      .mode-card { padding: 10px 8px; }
+      .mode-card .mode-icon { font-size: 20px; margin-bottom: 4px; }
+      .mode-card .mode-title { font-size: min(3.2vw, 16px); }
+      .mode-card .mode-desc { font-size: min(2vw, 10px); }
+      .how-to-section { margin-top: 8px; padding-top: 6px; }
+      .step-card { width: min(20vw, 110px); padding: 8px 4px 6px; }
+      .step-icon { font-size: min(3.5vw, 18px); }
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.min.js"></script>
@@ -545,8 +595,10 @@
 
     function t(key) { return (TR[key] && TR[key][currentLang]) || (TR[key] && TR[key]['fr']) || key; }
     function isTouchControlMode() {
-      return (navigator.maxTouchPoints || 0) > 0 ||
-        (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+      const hasTouch = (navigator.maxTouchPoints || 0) > 0;
+      const coarsePointer = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+      // Mobile/tablet only: avoid enabling touch HUD on desktop touchscreens.
+      return hasTouch && (coarsePointer || window.innerWidth <= 1024);
     }
     function isPortraitOrientation() {
       if (window.matchMedia) return window.matchMedia('(orientation: portrait)').matches;
@@ -1424,10 +1476,10 @@
       scene.joyVecX = 0;
       scene.joyVecY = 0;
       scene.lastMobileTapTime = 0;
-      scene._boostHudX = 110;
-      scene._boostHudY = GAME_HEIGHT - 68;
-      scene._joyHudX = GAME_WIDTH - 110;
-      scene._joyHudY = GAME_HEIGHT - 86;
+      scene._boostHudX = Math.max(90, Math.round(GAME_WIDTH * 0.1));
+      scene._boostHudY = GAME_HEIGHT - Math.max(68, Math.round(GAME_HEIGHT * 0.22));
+      scene._joyHudX = GAME_WIDTH - Math.max(90, Math.round(GAME_WIDTH * 0.1));
+      scene._joyHudY = GAME_HEIGHT - Math.max(86, Math.round(GAME_HEIGHT * 0.26));
       // Allow multi-touch: one finger joystick, one boost, one extra.
       this.input.addPointer(3);
 
@@ -1472,7 +1524,8 @@
 
       this.input.on('pointerdown', function (pointer) {
         const isTouchPointer = pointer.pointerType === 'touch';
-        if (!isTouchPointer && pointer.button !== 0) return;
+        const isPrimaryMouse = pointer.leftButtonDown ? pointer.leftButtonDown() : pointer.button === 0;
+        if (!isTouchPointer && !isPrimaryMouse) return;
         if (!isTouchPointer) {
           // PC: click anywhere to use stored power-up.
           if (scene._rouletteRunning) return;
@@ -1487,17 +1540,19 @@
           const bdx = pointer.x - scene.boostBtn.x;
           const bdy = pointer.y - scene.boostBtn.y;
           const bDist = Math.sqrt(bdx * bdx + bdy * bdy);
-          if (bDist <= 56 * (scene.boostBtn.scaleX || 1)) {
+          const boostHitR = (scene.boostBtn.radius || 46) * 1.4 * (scene.boostBtn.scaleX || 1);
+          if (bDist <= boostHitR) {
             scene.boostTouchActive = true;
             scene.boostTouchPointerId = pointer.id;
             return;
           }
         }
-        if (scene.joyBase && pointer.x > GAME_WIDTH * 0.45) {
+        if (scene.joyBase && pointer.x > GAME_WIDTH * 0.4) {
           const jdx = pointer.x - scene.joyBase.x;
           const jdy = pointer.y - scene.joyBase.y;
           const jDist = Math.sqrt(jdx * jdx + jdy * jdy);
-          if (jDist <= 82 * (scene.joyBase.scaleX || 1)) {
+          const joyHitR = (scene.joyBase.radius || 54) * 1.6 * (scene.joyBase.scaleX || 1);
+          if (jDist <= joyHitR) {
             scene.joystickPointerId = pointer.id;
             updateJoystickFromPointer(pointer);
             return;
@@ -1528,12 +1583,13 @@
         releaseJoystick(pointer);
       });
 
-      // --- HUD ---
-      const barX = 36;
-      const barBottom = GAME_HEIGHT - 70;
-      const barTop = barBottom - GAME_HEIGHT * 0.5;
+      // --- HUD (adapté mobile/desktop) ---
+      const mob = scene.isTouchDevice;
+      const barX = mob ? 28 : 36;
+      const barBottom = GAME_HEIGHT - (mob ? 50 : 70);
+      const barTop = barBottom - GAME_HEIGHT * (mob ? 0.38 : 0.5);
       const barHeight = barBottom - barTop;
-      const barWidth = 22;
+      const barWidth = mob ? 16 : 22;
 
       scene.energyBarBg = this.add.rectangle(barX, barTop+barHeight/2, barWidth, barHeight, 0x111827)
         .setOrigin(0.5).setScrollFactor(0).setDepth(800);
@@ -1541,23 +1597,25 @@
         .setOrigin(0.5).setStrokeStyle(2, 0x22c55e, 0.8).setScrollFactor(0).setDepth(800);
       scene.energyBarFill = this.add.rectangle(barX, barBottom-2, barWidth-4, 0, 0x22c55e)
         .setOrigin(0.5, 1).setScrollFactor(0).setDepth(801);
-      scene.energyBolt = this.add.text(barX, barTop-28, '⚡', {
-        fontSize: '40px', fontFamily: 'Segoe UI Emoji'
+      scene.energyBolt = this.add.text(barX, barTop - (mob ? 18 : 28), '⚡', {
+        fontSize: mob ? '28px' : '40px', fontFamily: 'Segoe UI Emoji'
       }).setOrigin(0.5).setScrollFactor(0).setDepth(800);
-      scene.energyPercent = this.add.text(barX, barBottom+28, '0', {
-        fontSize: '42px', fontStyle: 'bold', color: '#ff4b4b', fontFamily: 'Arial', resolution: 2
+      scene.energyPercent = this.add.text(barX, barBottom + (mob ? 18 : 28), '0', {
+        fontSize: mob ? '28px' : '42px', fontStyle: 'bold', color: '#ff4b4b', fontFamily: 'Arial', resolution: 2
       }).setOrigin(0.5).setScrollFactor(0).setDepth(800);
       scene._barTop = barTop; scene._barBottom = barBottom;
       scene._barHeight = barHeight;
 
-      // --- HUD Power-up (carré bas-droite) ---
-      const puX = GAME_WIDTH - 55, puY = GAME_HEIGHT - 55;
-      scene.powerUpBox = this.add.rectangle(puX, puY, 64, 64);
-      scene.powerUpBox.setStrokeStyle(3, 0xaaaaaa, 0.7);
+      // --- HUD Power-up (carré bas-droite, ajusté mobile) ---
+      const puSize = mob ? 48 : 64;
+      const puX = mob ? (GAME_WIDTH / 2) : (GAME_WIDTH - 55);
+      const puY = mob ? (GAME_HEIGHT - 36) : (GAME_HEIGHT - 55);
+      scene.powerUpBox = this.add.rectangle(puX, puY, puSize, puSize);
+      scene.powerUpBox.setStrokeStyle(mob ? 2 : 3, 0xaaaaaa, 0.7);
       scene.powerUpBox.setFillStyle(0x000000, 0);
       scene.powerUpBox.setScrollFactor(0).setDepth(802);
       scene.powerUpIcon = this.add.text(puX, puY, '', {
-        fontSize: '36px', fontFamily: 'Segoe UI Emoji, Arial', resolution: 2
+        fontSize: mob ? '26px' : '36px', fontFamily: 'Segoe UI Emoji, Arial', resolution: 2
       }).setOrigin(0.5).setScrollFactor(0).setDepth(803);
       scene._puX = puX; scene._puY = puY;
       scene.playerPowerUpUntil = 0;
@@ -1565,26 +1623,31 @@
       scene.boostBtnLabel = null;
       scene.joyBase = null;
       scene.joyKnob = null;
-      if (scene.isTouchDevice) {
-        scene.boostBtn = this.add.circle(scene._boostHudX, scene._boostHudY, 46, 0x22c55e, 0.2)
+      if (mob) {
+        const boostR = Math.max(46, Math.round(GAME_HEIGHT * 0.13));
+        scene.boostBtn = this.add.circle(scene._boostHudX, scene._boostHudY, boostR, 0x22c55e, 0.22)
           .setStrokeStyle(3, 0x39ff14, 0.9).setScrollFactor(0).setDepth(804);
         scene.boostBtnLabel = this.add.text(scene._boostHudX, scene._boostHudY, 'BOOST', {
-          fontSize: '18px', fontStyle: 'bold', color: '#d9ffd9', fontFamily: 'Arial', resolution: 2
+          fontSize: Math.max(14, Math.round(boostR * 0.38)) + 'px', fontStyle: 'bold', color: '#d9ffd9', fontFamily: 'Arial', resolution: 2
         }).setOrigin(0.5).setScrollFactor(0).setDepth(805);
-        scene.joyBase = this.add.circle(scene._joyHudX, scene._joyHudY, 54, 0x60a5fa, 0.22)
+        const joyR = Math.max(54, Math.round(GAME_HEIGHT * 0.16));
+        scene.joyBase = this.add.circle(scene._joyHudX, scene._joyHudY, joyR, 0x60a5fa, 0.22)
           .setStrokeStyle(3, 0x93c5fd, 0.9).setScrollFactor(0).setDepth(804);
-        scene.joyKnob = this.add.circle(scene._joyHudX, scene._joyHudY, 24, 0xbfdbfe, 0.92)
+        scene.joyKnob = this.add.circle(scene._joyHudX, scene._joyHudY, Math.round(joyR * 0.44), 0xbfdbfe, 0.92)
           .setStrokeStyle(2, 0xffffff, 0.85).setScrollFactor(0).setDepth(805);
       }
 
+      const timerFontSize = mob ? '48px' : '72px';
+      const timerX = mob ? 60 : 90;
+      const timerY = mob ? 34 : 50;
       scene.timeLeft = TIMER_START;
-      scene.timerText = this.add.text(90, 50, scene.timeLeft.toString(), {
-        fontSize: '72px', color: '#e5e7eb', fontStyle: 'bold', fontFamily: 'Arial', resolution: 2
+      scene.timerText = this.add.text(timerX, timerY, scene.timeLeft.toString(), {
+        fontSize: timerFontSize, color: '#e5e7eb', fontStyle: 'bold', fontFamily: 'Arial', resolution: 2
       }).setOrigin(0.5).setScrollFactor(0).setDepth(802);
 
-      scene.legendaryHud = this.add.text(GAME_WIDTH / 2, 95, '👑 ROI LÉGENDAIRE  ×2', {
-        fontSize: '20px', fontStyle: 'bold', color: '#ffa500',
-        fontFamily: 'Arial', stroke: '#000000', strokeThickness: 4, resolution: 2
+      scene.legendaryHud = this.add.text(GAME_WIDTH / 2, mob ? 64 : 95, '👑 ROI LÉGENDAIRE  ×2', {
+        fontSize: mob ? '14px' : '20px', fontStyle: 'bold', color: '#ffa500',
+        fontFamily: 'Arial', stroke: '#000000', strokeThickness: mob ? 3 : 4, resolution: 2
       }).setOrigin(0.5).setScrollFactor(0).setDepth(803).setVisible(false);
 
       scene.targetPelletCount = 1000;
@@ -1640,25 +1703,38 @@
         }
       }});
 
-      scene.targetLabel = this.add.text(GAME_WIDTH-20, 14, 'King', {
-        fontSize: '36px', fontStyle: 'bold', color: '#e5e7eb', fontFamily: 'Arial', resolution: 2
+      const kingFontSize = mob ? '24px' : '36px';
+      const kingX = GAME_WIDTH - (mob ? 14 : 20);
+      scene.targetLabel = this.add.text(kingX, mob ? 8 : 14, 'King', {
+        fontSize: kingFontSize, fontStyle: 'bold', color: '#e5e7eb', fontFamily: 'Arial', resolution: 2
       }).setOrigin(1,0).setScrollFactor(0).setDepth(802);
-      scene.targetName = this.add.text(GAME_WIDTH-20, 52, '—', {
-        fontSize: '36px', fontStyle: 'bold', color: '#39ff14', fontFamily: 'Arial', resolution: 2
+      scene.targetName = this.add.text(kingX, mob ? 32 : 52, '—', {
+        fontSize: kingFontSize, fontStyle: 'bold', color: '#39ff14', fontFamily: 'Arial', resolution: 2
       }).setOrigin(1,0).setScrollFactor(0).setDepth(802);
+      scene._kingX = kingX;
 
-      // --- Leaderboard ---
-      const lbW = 200, lbX = GAME_WIDTH - 20, lbY = Math.round(GAME_HEIGHT / 2 - 140);
+      // --- Leaderboard (compact sur mobile) ---
+      const lbCount = mob ? 5 : 10;
+      const lbFontSize = mob ? '10px' : '13px';
+      const lbTitleFontSize = mob ? '14px' : '22px';
+      const lbRowH = mob ? 16 : 22;
+      const lbW = mob ? 140 : 200;
+      const lbX = GAME_WIDTH - (mob ? 14 : 20);
+      const lbY = Math.round(mob ? GAME_HEIGHT * 0.24 : GAME_HEIGHT / 2 - 140);
+      const lbBgH = mob ? (lbCount * lbRowH + 50) : 280;
       scene._lbY = lbY;
-      scene.lbBg = this.add.rectangle(lbX - lbW/2, lbY + 120, lbW, 280, 0x000000, 0.35)
+      scene._lbW = lbW;
+      scene._lbRowH = lbRowH;
+      scene._lbCount = lbCount;
+      scene.lbBg = this.add.rectangle(lbX - lbW/2, lbY + lbBgH/2, lbW, lbBgH, 0x000000, 0.35)
         .setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(801);
-      scene.lbTitle = this.add.text(lbX - lbW/2, lbY - 16, 'Top 10 Joueurs', {
-        fontSize: '22px', fontStyle: 'bold', color: '#e5e7eb', fontFamily: 'Arial', resolution: 2
+      scene.lbTitle = this.add.text(lbX - lbW/2, lbY - (mob ? 10 : 16), mob ? 'Top 5' : 'Top 10 Joueurs', {
+        fontSize: lbTitleFontSize, fontStyle: 'bold', color: '#e5e7eb', fontFamily: 'Arial', resolution: 2
       }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(802);
       scene.lbRows = [];
-      for (let i = 0; i < 10; i++) {
-        const row = this.add.text(lbX, lbY + 22 + i * 22, '', {
-          fontSize: '13px', color: '#ffffff', fontFamily: 'Arial', resolution: 2
+      for (let i = 0; i < lbCount; i++) {
+        const row = this.add.text(lbX, lbY + lbRowH + i * lbRowH, '', {
+          fontSize: lbFontSize, color: '#ffffff', fontFamily: 'Arial', resolution: 2
         }).setOrigin(1, 0).setScrollFactor(0).setDepth(802);
         scene.lbRows.push(row);
       }
@@ -2100,32 +2176,48 @@
       const camMain = scene.cameras.main;
       const z = camMain.zoom||1, invZ = 1/z;
       const cw = GAME_WIDTH/2, ch = GAME_HEIGHT/2;
+      const _mob = scene.isTouchDevice;
+      const _barX = _mob ? 28 : 36;
+      const _timerX = _mob ? 60 : 90;
+      const _timerY = _mob ? 34 : 50;
+      const _legY = _mob ? 64 : 95;
+      const _kingX = scene._kingX || (GAME_WIDTH - (_mob ? 14 : 20));
+      const _kingLabelY = _mob ? 8 : 14;
+      const _kingNameY = _mob ? 32 : 52;
+      const _boltOff = _mob ? 18 : 28;
+      const _pctOff = _mob ? 18 : 28;
       function fixHud(el,sx,sy) { el.x=(sx-cw)*invZ+cw; el.y=(sy-ch)*invZ+ch; el.setScale(invZ); }
-      fixHud(scene.timerText, 90, 50);
-      fixHud(scene.legendaryHud, GAME_WIDTH / 2, 95);
-      fixHud(scene.targetLabel, GAME_WIDTH-20, 14);
-      fixHud(scene.targetName, GAME_WIDTH-20, 52);
-      fixHud(scene.energyBarBg, 36, scene._barTop+scene._barHeight/2);
-      fixHud(scene.energyBarBorder, 36, scene._barTop+scene._barHeight/2);
-      fixHud(scene.energyBarFill, 36, scene._barBottom-2);
-      fixHud(scene.energyBolt, 36, scene._barTop-28);
-      fixHud(scene.energyPercent, 48, scene._barBottom+28);
+      fixHud(scene.timerText, _timerX, _timerY);
+      fixHud(scene.legendaryHud, GAME_WIDTH / 2, _legY);
+      fixHud(scene.targetLabel, _kingX, _kingLabelY);
+      fixHud(scene.targetName, _kingX, _kingNameY);
+      fixHud(scene.energyBarBg, _barX, scene._barTop+scene._barHeight/2);
+      fixHud(scene.energyBarBorder, _barX, scene._barTop+scene._barHeight/2);
+      fixHud(scene.energyBarFill, _barX, scene._barBottom-2);
+      fixHud(scene.energyBolt, _barX, scene._barTop-_boltOff);
+      fixHud(scene.energyPercent, _barX + (_mob ? 0 : 12), scene._barBottom+_pctOff);
       fixHud(scene.powerUpBox, scene._puX, scene._puY);
       fixHud(scene.powerUpIcon, scene._puX, scene._puY);
       if (scene.boostBtn) fixHud(scene.boostBtn, scene._boostHudX, scene._boostHudY);
       if (scene.boostBtnLabel) fixHud(scene.boostBtnLabel, scene._boostHudX, scene._boostHudY);
       if (scene.joyBase) fixHud(scene.joyBase, scene._joyHudX, scene._joyHudY);
       if (scene.joyKnob) {
-        const joyKnobScreenX = scene.joyBase.x + scene.joyVecX * 42 * (scene.joyBase.scaleX || 1);
-        const joyKnobScreenY = scene.joyBase.y + scene.joyVecY * 42 * (scene.joyBase.scaleX || 1);
+        const joyMaxR = scene.joyBase.radius || 54;
+        const joyKnobScreenX = scene.joyBase.x + scene.joyVecX * joyMaxR * 0.78 * (scene.joyBase.scaleX || 1);
+        const joyKnobScreenY = scene.joyBase.y + scene.joyVecY * joyMaxR * 0.78 * (scene.joyBase.scaleX || 1);
         scene.joyKnob.x = joyKnobScreenX;
         scene.joyKnob.y = joyKnobScreenY;
         scene.joyKnob.setScale(invZ);
       }
-      fixHud(scene.lbBg, GAME_WIDTH - 20 - 100, scene._lbY + 120);
-      fixHud(scene.lbTitle, GAME_WIDTH - 20 - 100, scene._lbY - 16);
+      const _lbX = GAME_WIDTH - (_mob ? 14 : 20);
+      const _lbW = scene._lbW || (_mob ? 140 : 200);
+      const _lbRowH = scene._lbRowH || (_mob ? 16 : 22);
+      const _lbCount = scene._lbCount || (_mob ? 5 : 10);
+      const _lbBgH = _mob ? (_lbCount * _lbRowH + 50) : 280;
+      fixHud(scene.lbBg, _lbX - _lbW/2, scene._lbY + _lbBgH/2);
+      fixHud(scene.lbTitle, _lbX - _lbW/2, scene._lbY - (_mob ? 10 : 16));
       for (let li = 0; li < scene.lbRows.length; li++) {
-        fixHud(scene.lbRows[li], GAME_WIDTH - 20, scene._lbY + 22 + li * 22);
+        fixHud(scene.lbRows[li], _lbX, scene._lbY + _lbRowH + li * _lbRowH);
       }
       scene.crownArrow.setScale(invZ);
 
