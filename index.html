@@ -781,8 +781,207 @@
     let competitionAccount = null;
     let competitionAuthMode = 'register';
     const GUEST_PROGRESS_KEY = 'crown-chase-guest-progression';
+    const BOT_LEARNING_KEY = 'crown-chase-bot-learning-v1';
+    const BOT_LEARNING_MAX = 140;
     let guestProgress = null;
     const COMPET_API_BASE = window.COMPET_API_BASE || 'http://localhost:8787';
+
+    function createDefaultBotLearning() {
+      return {
+        version: 1,
+        matchesPlayed: 0,
+        globalSkill: 0,
+        facets: {
+          farm: 0,
+          box: 0,
+          attack: 0,
+          escape: 0,
+          powerup: 0,
+          crown: 0
+        },
+        updatedAt: Date.now()
+      };
+    }
+
+    function clamp01(v) {
+      return Math.max(0, Math.min(1, Number(v) || 0));
+    }
+
+    function sanitizeBotLearning(raw) {
+      const d = createDefaultBotLearning();
+      if (!raw || typeof raw !== 'object') return d;
+      const safe = {
+        version: 1,
+        matchesPlayed: Math.max(0, Math.floor(Number(raw.matchesPlayed) || 0)),
+        globalSkill: Math.max(0, Math.min(BOT_LEARNING_MAX, Number(raw.globalSkill) || 0)),
+        facets: { ...d.facets },
+        updatedAt: Date.now()
+      };
+      const srcFacets = (raw.facets && typeof raw.facets === 'object') ? raw.facets : {};
+      for (const k of Object.keys(safe.facets)) {
+        safe.facets[k] = Math.max(0, Math.min(BOT_LEARNING_MAX, Number(srcFacets[k]) || 0));
+      }
+      return safe;
+    }
+
+    function loadBotLearning() {
+      try {
+        const raw = localStorage.getItem(BOT_LEARNING_KEY);
+        if (!raw) return createDefaultBotLearning();
+        return sanitizeBotLearning(JSON.parse(raw));
+      } catch (_e) {
+        return createDefaultBotLearning();
+      }
+    }
+
+    function saveBotLearning(learning) {
+      try {
+        const payload = sanitizeBotLearning(learning);
+        payload.updatedAt = Date.now();
+        localStorage.setItem(BOT_LEARNING_KEY, JSON.stringify(payload));
+      } catch (_e) {
+        // Keep in-memory learning if storage is unavailable.
+      }
+    }
+
+    function rewardBotLearning(scene, facet, amount) {
+      if (!scene || !scene.botLearning || !scene.botLearning.facets) return;
+      if (!facet || !scene.botLearning.facets.hasOwnProperty(facet)) return;
+      const inc = Math.max(0, Number(amount) || 0);
+      if (inc <= 0) return;
+
+      const currentFacet = scene.botLearning.facets[facet] || 0;
+      const facetRoom = 1 - clamp01(currentFacet / BOT_LEARNING_MAX);
+      const facetGain = inc * (0.35 + facetRoom * 0.65);
+      scene.botLearning.facets[facet] = Math.min(BOT_LEARNING_MAX, currentFacet + facetGain);
+
+      const currGlobal = scene.botLearning.globalSkill || 0;
+      const globalRoom = 1 - clamp01(currGlobal / BOT_LEARNING_MAX);
+      const globalGain = inc * 0.35 * (0.35 + globalRoom * 0.65);
+      scene.botLearning.globalSkill = Math.min(BOT_LEARNING_MAX, currGlobal + globalGain);
+
+      scene._botLearningDirty = true;
+    }
+
+    function flushBotLearning(scene, force) {
+      if (!scene || !scene.botLearning) return;
+      const now = Date.now();
+      const due = force || !scene._botLearningLastSaveAt || (now - scene._botLearningLastSaveAt > 2500);
+      if (!due || !scene._botLearningDirty) return;
+      saveBotLearning(scene.botLearning);
+      scene._botLearningLastSaveAt = now;
+      scene._botLearningDirty = false;
+    }
+
+    function getAdaptiveBotProfile(baseProfile, learning, botIndex) {
+      const p = { ...baseProfile };
+      if (!learning || !learning.facets) return p;
+
+      const g = clamp01((learning.globalSkill || 0) / BOT_LEARNING_MAX);
+      const fFarm = clamp01((learning.facets.farm || 0) / BOT_LEARNING_MAX);
+      const fBox = clamp01((learning.facets.box || 0) / BOT_LEARNING_MAX);
+      const fAtk = clamp01((learning.facets.attack || 0) / BOT_LEARNING_MAX);
+      const fEsc = clamp01((learning.facets.escape || 0) / BOT_LEARNING_MAX);
+      const fPower = clamp01((learning.facets.powerup || 0) / BOT_LEARNING_MAX);
+      const fCrown = clamp01((learning.facets.crown || 0) / BOT_LEARNING_MAX);
+
+      const profileDrift = (((botIndex * 37) % 9) - 4) * 0.02;
+      const skill = Math.max(0, Math.min(1.25, g + profileDrift));
+
+      p.boxRange = Math.round(baseProfile.boxRange * (1 + (fBox * 0.16) + (skill * 0.06)));
+      p.attackEnergyGate = Math.max(8, Math.round(baseProfile.attackEnergyGate - (fAtk * 6) - (fPower * 2)));
+      p.contestMargin = Math.round(baseProfile.contestMargin - (fAtk * 8));
+      p.crownBoostMin = Math.max(6, Math.round(baseProfile.crownBoostMin - (fCrown * 4)));
+      p.boostBurst = Math.round(baseProfile.boostBurst * (1 + (fAtk * 0.14) + (fEsc * 0.08)));
+      p.rageDist = Math.round(baseProfile.rageDist * (1 + (fPower * 0.14)));
+      p.kingEscapeDist = Math.round(baseProfile.kingEscapeDist * (1 + (fEsc * 0.18)));
+      p.kingEscapeEnergy = Math.max(8, Math.round(baseProfile.kingEscapeEnergy - (fEsc * 4)));
+      p.farmOffset = Math.round(baseProfile.farmOffset - (fFarm * 8));
+
+      return p;
+    }
+
+    function rewardBotAction(scene, bot, facet, amount, cooldownMs) {
+      if (!bot || !scene) return;
+      if (!bot.aiLearnCooldown) bot.aiLearnCooldown = {};
+      const now = scene.time ? scene.time.now : 0;
+      const cd = Math.max(0, Number(cooldownMs) || 0);
+      const until = bot.aiLearnCooldown[facet] || 0;
+      if (now < until) return;
+      bot.aiLearnCooldown[facet] = now + cd;
+      rewardBotLearning(scene, facet, amount);
+    }
+
+    function getNearestEnemyDistance(scene, botId) {
+      const bot = scene.bots.find(x => x.id === botId);
+      if (!bot) return Infinity;
+      let near = Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, scene.player.x, scene.player.y);
+      for (const ob of scene.bots) {
+        if (ob.id === botId) continue;
+        const d = Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, ob.circle.x, ob.circle.y);
+        if (d < near) near = d;
+      }
+      return near;
+    }
+
+    function finalizeBotLearningForMatch(scene) {
+      if (!scene || !scene.botLearning) return;
+      if (scene._botLearningMatchFinalized) return;
+      scene._botLearningMatchFinalized = true;
+      scene.botLearning.matchesPlayed = Math.max(0, (scene.botLearning.matchesPlayed || 0) + 1);
+      rewardBotLearning(scene, 'crown', 0.25);
+      flushBotLearning(scene, true);
+    }
+
+    function setBotIntent(bot, phase, nowMs, confidence) {
+      const conf = Math.max(0, Math.min(1.4, Number(confidence) || 0));
+      const minDur = 1400 + conf * 700;
+      const maxDur = 2600 + conf * 1200;
+      bot.aiIntentPhase = phase;
+      bot.aiIntentUntil = nowMs + Phaser.Math.Between(Math.round(minDur), Math.round(maxDur));
+      bot.aiPhase = phase;
+    }
+
+    function canKeepBotIntent(bot, nowMs, holderCircle, isHolder, energyCrisis) {
+      if (!bot.aiIntentPhase || !bot.aiIntentUntil) return false;
+      if (nowMs >= bot.aiIntentUntil) return false;
+      if (energyCrisis && bot.aiIntentPhase === 'attack') return false;
+      if (isHolder && bot.aiIntentPhase !== 'flee') return false;
+      if (!isHolder && bot.aiIntentPhase === 'flee') return false;
+      if ((bot.aiIntentPhase === 'attack' || bot.aiIntentPhase === 'flee') && !holderCircle) return false;
+      if (bot.aiIntentPhase === 'crown' && holderCircle) return false;
+      return true;
+    }
+
+    function getInterceptPoint(chaserCircle, targetCircle, chaserSpeed, leadBias) {
+      const tvx = targetCircle && targetCircle.body ? targetCircle.body.velocity.x : 0;
+      const tvy = targetCircle && targetCircle.body ? targetCircle.body.velocity.y : 0;
+      const dx = (targetCircle ? targetCircle.x : 0) - (chaserCircle ? chaserCircle.x : 0);
+      const dy = (targetCircle ? targetCircle.y : 0) - (chaserCircle ? chaserCircle.y : 0);
+      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      const speed = Math.max(120, Number(chaserSpeed) || 120);
+      const tRaw = dist / speed;
+      const t = Phaser.Math.Clamp(tRaw * (0.72 + Math.max(0, Math.min(0.45, leadBias || 0))), 0.06, 0.95);
+      return {
+        x: (targetCircle ? targetCircle.x : 0) + tvx * t,
+        y: (targetCircle ? targetCircle.y : 0) + tvy * t
+      };
+    }
+
+    function getAlliesPressuringHolder(scene, currentBotId, holderId, radius) {
+      if (!scene || !holderId) return 0;
+      const holderCircle = getCircle(scene, holderId);
+      if (!holderCircle) return 0;
+      const rr = radius * radius;
+      let count = 0;
+      scene.bots.forEach(b => {
+        if (b.id === currentBotId || b.id === holderId) return;
+        const dx = b.circle.x - holderCircle.x;
+        const dy = b.circle.y - holderCircle.y;
+        if (dx * dx + dy * dy <= rr) count++;
+      });
+      return count;
+    }
 
     function tryLockLandscape() {
       if (!isTouchControlMode()) return;
@@ -1180,8 +1379,15 @@
     const SHOCKWAVE_FORCE = 900;
     const GAME_MUSIC_PATH = 'assets/audio/bgm.mp3';
     const END_SECOND_SOUND_PATH = 'assets/audio/end-second.m4a';
-    const PLAYER_KING_SOUND_PATH = 'assets/audio/player-king.mp3';
+    const PLAYER_KING_SOUND_PATH = 'assets/audio/crown-pickup.mp3';
+    const PLAYER_LOSE_CROWN_SOUND_PATH = 'assets/audio/player-king.mp3';
     const PLAYER_BOX_SOUND_PATH = 'assets/audio/box-pickup.mp3';
+    const GHOST_BOOST_SOUND_PATH = 'assets/audio/ghost-boost.mp3';
+    const TURBO_BOOST_SOUND_PATH = 'assets/audio/turbo-boost.mp3';
+    const MAGNET_BOOST_SOUND_PATH = 'assets/audio/magnet-boost.mp3';
+    const RAGE_BOOST_SOUND_PATH = 'assets/audio/rage-boost.mp3';
+    const SPEED_BOOST_SOUND_PATH = 'assets/audio/speed-boost.mp3';
+    const CRATE_ROULETTE_SOUND_PATH = 'assets/audio/crate-roulette.mp3';
     const TOTAL_PLAYERS = 18;
     const BOT_COUNT = TOTAL_PLAYERS - 1;
 
@@ -1277,8 +1483,12 @@
     function create() {
       const scene = this;
       setupReplayRecorder(scene);
-      scene.events.once('shutdown', () => cleanupReplayRecorder(scene));
-      scene.events.once('destroy', () => cleanupReplayRecorder(scene));
+      scene.events.once('shutdown', () => { flushBotLearning(scene, true); cleanupReplayRecorder(scene); });
+      scene.events.once('destroy', () => { flushBotLearning(scene, true); cleanupReplayRecorder(scene); });
+      scene.botLearning = loadBotLearning();
+      scene._botLearningDirty = false;
+      scene._botLearningLastSaveAt = 0;
+      scene._botLearningMatchFinalized = false;
 
       const grid = this.add.grid(WORLD_WIDTH/2, WORLD_HEIGHT/2, WORLD_WIDTH, WORLD_HEIGHT,
         40, 40, 0x020814, 1, 0x0b2a4a, 0.3);
@@ -1327,11 +1537,13 @@
         circle.body.setCircle(PLAYER_RADIUS);
         circle.body.setCollideWorldBounds(true);
 
+        const baseProfile = BOT_PROFILES[i % BOT_PROFILES.length];
+        const adaptiveProfile = getAdaptiveBotProfile(baseProfile, scene.botLearning, i);
         scene.bots.push({
           id: 'bot_' + i,
           circle, glow, nameText, color,
           name: botName,
-          aiProfile: BOT_PROFILES[i % BOT_PROFILES.length],
+          aiProfile: adaptiveProfile,
           aiChargeBeforeAttack: Math.random() < 0.9,
           energy: 0,
           pelletCount: 0,
@@ -1344,9 +1556,16 @@
           aiDirY: Math.random()-0.5,
           aiJitter: Math.random() * 0.4 + 0.8,
           aiPhase: 'farm',
+          aiIntentPhase: null,
+          aiIntentUntil: 0,
           aiFarmThreshold: 35 + Math.random() * 30,
           aiDecisionTimer: 0,
           aiUseBoxTimer: 0,
+          aiLastPowerUseAt: 0,
+          aiFleeTargetX: x,
+          aiFleeTargetY: y,
+          aiFleeRetargetAt: 0,
+          aiLearnCooldown: {},
           score: 0,
           pelletsCollected: 0
         });
@@ -2519,65 +2738,92 @@
         const ultraAggro = bot.energy >= 80;
         const attackEngageDistance = highEnergyAttacker ? 760 : 420;
 
-        // --- Décision de phase : plus stratégique, proche d'un joueur humain ---
-        if (scene.time.now > bot.aiDecisionTimer) {
-          bot.aiDecisionTimer = scene.time.now + 320 + Math.random() * 260;
+        // --- Décision V2 : mémoire d'intention + score risque/récompense ---
+        let nearestBoxDist = Infinity;
+        if (scene.mysteryBoxActive) nearestBoxDist = Math.min(nearestBoxDist, Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, boxX, boxY));
+        if (scene.wildBoxActive) nearestBoxDist = Math.min(nearestBoxDist, Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, scene.wildBox.x, scene.wildBox.y));
+        if (hasBonusBox) {
+          scene.bonusBoxes.forEach(bb => {
+            if (!bb.active) return;
+            const db = Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, bb.box.x, bb.box.y);
+            nearestBoxDist = Math.min(nearestBoxDist, db);
+          });
+        }
+        const nearestEnemyNow = getNearestEnemyDistance(scene, bot.id);
+        const boxOpportunity = canTakeAnyBox ? Math.max(0, 1 - (nearestBoxDist / 1900)) : 0;
+        const attackWindow = holderCircle ? Math.max(0, 1 - (distToHolder / 950)) : 0;
+        const crownWindow = holderCircle ? 0 : Math.max(0, 1 - (distToCrown / 950));
+        const alliesNearHolder = holderCircle ? getAlliesPressuringHolder(scene, bot.id, holder, 720) : 0;
+        const timePressure = scene.timeLeft <= 25 ? (25 - scene.timeLeft) / 25 : 0;
 
+        const keepIntent = canKeepBotIntent(bot, scene.time.now, holderCircle, isHolder, energyCrisis);
+        if (!keepIntent && scene.time.now > bot.aiDecisionTimer) {
+          bot.aiDecisionTimer = scene.time.now + 260 + Math.random() * 220;
+
+          let chosen = bot.aiPhase || 'farm';
           if (isHolder) {
-            bot.aiPhase = 'flee';
-          } else if (holderCircle) {
-            let nearestBoxDist = Infinity;
-            if (scene.mysteryBoxActive) nearestBoxDist = Math.min(nearestBoxDist, Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, boxX, boxY));
-            if (scene.wildBoxActive) nearestBoxDist = Math.min(nearestBoxDist, Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, scene.wildBox.x, scene.wildBox.y));
-            if (hasBonusBox) {
-              scene.bonusBoxes.forEach(bb => {
-                if (!bb.active) return;
-                const db = Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, bb.box.x, bb.box.y);
-                nearestBoxDist = Math.min(nearestBoxDist, db);
-              });
-            }
-
-            if (ultraAggro) {
-              bot.aiPhase = 'attack';
-            } else if (energyCrisis) {
-              bot.aiPhase = canTakeAnyBox && nearestBoxDist < 1800 ? 'box' : 'farm';
-            } else if (mustChargeBeforeAttack) {
-              bot.aiPhase = canTakeAnyBox && nearestBoxDist < 1600 ? 'box' : 'farm';
-            } else if ((!profile.alwaysPressure && lowEnergy && distToHolder > 560) ||
-                (underpoweredVsHolder && distToHolder < 620 && profile.key !== 'berserker')) {
-              bot.aiPhase = 'farm';
-            } else if (!profile.alwaysPressure && canTakeBox && nearestBoxDist < profile.boxRange && !strongEnoughToContest) {
-              bot.aiPhase = 'box';
-            } else if (distToHolder < attackEngageDistance || strongEnoughToContest || bot.energy > profile.attackEnergyGate + 16) {
-              bot.aiPhase = 'attack';
-            } else {
-              bot.aiPhase = (!profile.alwaysPressure && lowEnergy) ? 'farm' : 'attack';
-            }
+            chosen = 'flee';
           } else {
-            // Couronne libre : priorité à la prise, mais pas à vide si énergie trop faible.
-            let nearestBoxDist = Infinity;
-            if (scene.mysteryBoxActive) nearestBoxDist = Math.min(nearestBoxDist, Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, boxX, boxY));
-            if (scene.wildBoxActive) nearestBoxDist = Math.min(nearestBoxDist, Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, scene.wildBox.x, scene.wildBox.y));
-            if (hasBonusBox) {
-              scene.bonusBoxes.forEach(bb => {
-                if (!bb.active) return;
-                const db = Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, bb.box.x, bb.box.y);
-                nearestBoxDist = Math.min(nearestBoxDist, db);
-              });
-            }
+            const scoreFarm = (lowEnergy ? 1.1 : 0.45) +
+              (energyCrisis ? 0.7 : 0) +
+              (1 - Phaser.Math.Clamp(bot.energy / 100, 0, 1)) * 0.8 -
+              attackWindow * 0.45 +
+              boxOpportunity * 0.18 +
+              (bot.aiPhase === 'farm' ? 0.08 : 0);
 
-            if (ultraAggro) {
-              bot.aiPhase = 'crown';
-            } else if (energyCrisis) {
-              bot.aiPhase = canTakeAnyBox && nearestBoxDist < 1800 ? 'box' : 'farm';
-            } else if (!profile.alwaysPressure && lowEnergy && distToCrown > 640) {
-              bot.aiPhase = 'farm';
-            } else if (!profile.alwaysPressure && canTakeBox && nearestBoxDist < Math.min(profile.boxRange, 1200) && distToCrown > 350) {
-              bot.aiPhase = 'box';
+            const scoreBox = canTakeAnyBox
+              ? 0.6 + boxOpportunity * 1.2 + (bot.energy > 18 ? 0.25 : -0.7) +
+                (lowEnergy ? 0.2 : 0) + (holderCircle && !strongEnoughToContest ? 0.24 : 0)
+              : -99;
+
+            const scoreAttack = holderCircle
+              ? 0.35 + attackWindow * 1.35 +
+                (strongEnoughToContest ? 0.65 : 0) +
+                (highEnergyAttacker ? 0.35 : 0) +
+                Math.min(0.5, alliesNearHolder * 0.16) +
+                timePressure * 0.45 -
+                (underpoweredVsHolder ? 0.65 : 0) -
+                (energyCrisis ? 0.6 : 0) -
+                (mustChargeBeforeAttack ? 0.3 : 0)
+              : -99;
+
+            const scoreCrown = !holderCircle
+              ? 0.7 + crownWindow * 1.4 +
+                (bot.energy > profile.crownBoostMin ? 0.3 : -0.32) +
+                timePressure * 0.52
+              : -99;
+
+            const scoreFlee = holderCircle
+              ? 0.2 + Math.max(0, 1 - (nearestEnemyNow / 640)) * 0.6
+              : -99;
+
+            let options;
+            if (holderCircle) {
+              options = [
+                { phase: 'farm', score: scoreFarm },
+                { phase: 'box', score: scoreBox },
+                { phase: 'attack', score: scoreAttack },
+                { phase: 'flee', score: scoreFlee }
+              ];
             } else {
-              bot.aiPhase = 'crown';
+              options = [
+                { phase: 'farm', score: scoreFarm },
+                { phase: 'box', score: scoreBox },
+                { phase: 'crown', score: scoreCrown }
+              ];
             }
+            options.sort((a, b) => b.score - a.score);
+            chosen = options[0].phase;
+            const top = options[0].score;
+            const second = options[1] ? options[1].score : (top - 0.6);
+            const confidence = Phaser.Math.Clamp(top - second, 0, 1.3);
+            setBotIntent(bot, chosen, scene.time.now, confidence);
           }
+
+          if (isHolder) setBotIntent(bot, chosen, scene.time.now, 1);
+          if (energyCrisis && chosen === 'attack') setBotIntent(bot, canTakeAnyBox ? 'box' : 'farm', scene.time.now, 0.75);
+        } else if (keepIntent) {
+          bot.aiPhase = bot.aiIntentPhase;
         }
 
         let txIA, tyIA;
@@ -2587,7 +2833,7 @@
 
         switch (bot.aiPhase) {
           case 'flee': {
-            // Roi : fuir le chasseur le plus proche, boost si menacé
+            // Roi : fuite stable (sans zigzag rapide), retarget en paliers.
             let nearDist = Infinity, nearX = 0, nearY = 0;
             const checkNear = (cx, cy) => {
               const dd = Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, cx, cy);
@@ -2597,13 +2843,30 @@
             scene.bots.forEach(ob => { if (ob.id !== bot.id) checkNear(ob.circle.x, ob.circle.y); });
             nearestEnemyDist = nearDist;
 
-            const fdx = bot.circle.x - nearX, fdy = bot.circle.y - nearY;
-            const fd = Math.sqrt(fdx*fdx + fdy*fdy) || 1;
-            txIA = bot.circle.x + (fdx/fd)*250 + Math.sin(time*0.002*jit)*100;
-            tyIA = bot.circle.y + (fdy/fd)*250 + Math.cos(time*0.003*jit)*100;
-            // Rester dans les limites du monde
-            txIA = Phaser.Math.Clamp(txIA, 100, WORLD_WIDTH - 100);
-            tyIA = Phaser.Math.Clamp(tyIA, 100, WORLD_HEIGHT - 100);
+            if (scene.time.now >= (bot.aiFleeRetargetAt || 0)) {
+              const fdx = bot.circle.x - nearX;
+              const fdy = bot.circle.y - nearY;
+              const fd = Math.sqrt(fdx * fdx + fdy * fdy) || 1;
+              const awayX = fdx / fd;
+              const awayY = fdy / fd;
+
+              // Cherche un point d'échappement lisible: loin du chasseur, sans oscillation.
+              const fleeReach = nearDist < 320 ? 720 : (nearDist < 520 ? 620 : 520);
+              let tgtX = bot.circle.x + awayX * fleeReach;
+              let tgtY = bot.circle.y + awayY * fleeReach;
+
+              // Léger biais anti-corner trap : revient un peu vers une zone jouable centrale.
+              const centerPull = nearDist < 260 ? 0 : 0.16;
+              tgtX = Phaser.Math.Linear(tgtX, WORLD_WIDTH / 2, centerPull);
+              tgtY = Phaser.Math.Linear(tgtY, WORLD_HEIGHT / 2, centerPull);
+
+              bot.aiFleeTargetX = Phaser.Math.Clamp(tgtX, 110, WORLD_WIDTH - 110);
+              bot.aiFleeTargetY = Phaser.Math.Clamp(tgtY, 110, WORLD_HEIGHT - 110);
+              bot.aiFleeRetargetAt = scene.time.now + 190 + Math.random() * 140;
+            }
+
+            txIA = bot.aiFleeTargetX;
+            tyIA = bot.aiFleeTargetY;
             if (nearDist < Math.max(profile.kingEscapeDist, 420) && bot.energy > Math.min(profile.kingEscapeEnergy, 8)) {
               bot.boostCommitUntil = Math.max(bot.boostCommitUntil, scene.time.now + profile.boostBurst + 120);
             }
@@ -2684,12 +2947,19 @@
                 tyIA = bot.circle.y + (rdy / rd) * 300;
                 break;
               }
-              const leadX = hc.body ? hc.body.velocity.x * 0.2 : 0;
-              const leadY = hc.body ? hc.body.velocity.y * 0.2 : 0;
-              txIA = hc.x + leadX;
-              tyIA = hc.y + leadY;
+              const intercept = getInterceptPoint(bot.circle, hc, botSpeed * (highEnergyAttacker ? 1.08 : 1), highEnergyAttacker ? 0.24 : 0.16);
+              txIA = intercept.x;
+              tyIA = intercept.y;
               const dc = Phaser.Math.Distance.Between(bot.circle.x, bot.circle.y, hc.x, hc.y);
               nearestEnemyDist = dc;
+              const pressureCount = getAlliesPressuringHolder(scene, bot.id, holder, 760);
+              if (pressureCount > 0 && dc > 180) {
+                const ang = Math.atan2(hc.y - bot.circle.y, hc.x - bot.circle.x);
+                const side = ((bot.id.charCodeAt(bot.id.length - 1) % 2) === 0) ? 1 : -1;
+                const flankOffset = Math.min(240, 90 + pressureCount * 44);
+                txIA += -Math.sin(ang) * flankOffset * side;
+                tyIA += Math.cos(ang) * flankOffset * side;
+              }
               // Boost d'attaque uniquement a proximité immédiate du roi.
               const closeBoostDistance = highEnergyAttacker ? 360 : 280;
               if (dc < closeBoostDistance && bot.energy > Math.max(6, profile.attackEnergyGate - 10)) {
@@ -2745,11 +3015,17 @@
             }
           }
         }
+        if (!Number.isFinite(nearestEnemyDist) || nearestEnemyDist === Infinity) {
+          nearestEnemyDist = getNearestEnemyDistance(scene, bot.id);
+        }
 
         // Activer le power-up stocké seulement dans des situations pertinentes.
         if (!scene.activePowerUps[bot.id] && bot.storedPowerUp) {
           let useStored = false;
           const pu = bot.storedPowerUp;
+          let quality = 0;
+          const sincePu = scene.time.now - (bot.aiLastPowerUseAt || 0);
+          if (sincePu < 900) useStored = false;
           let nearbyPellets = 0;
           if (pu === 'magnet') {
             scene.pelletGroup.getChildren().forEach(p => {
@@ -2760,27 +3036,49 @@
           }
 
           if (pu === 'rage') {
-            useStored = !!holderCircle && holder !== bot.id && distToHolder < profile.rageDist && !scene.auraShieldBroken && bot.energy > profile.attackEnergyGate - 4;
+            quality = (!!holderCircle && holder !== bot.id && !scene.auraShieldBroken)
+              ? Phaser.Math.Clamp(1 - distToHolder / Math.max(260, profile.rageDist), 0, 1)
+              : 0;
+            quality += bot.energy > profile.attackEnergyGate - 6 ? 0.2 : -0.3;
+            useStored = quality >= 0.5;
           } else if (pu === 'ghost') {
-            useStored = (isHolder && nearestEnemyDist < (profile.key === 'defensive' ? 320 : 240)) ||
-              (!!holderCircle && holder !== bot.id && distToHolder < (profile.key === 'aggressive' ? 450 : 360) && !scene.auraShieldBroken);
+            const offensiveGhost = (!!holderCircle && holder !== bot.id && !scene.auraShieldBroken)
+              ? Phaser.Math.Clamp(1 - distToHolder / (profile.key === 'aggressive' ? 480 : 390), 0, 1)
+              : 0;
+            const defensiveGhost = isHolder
+              ? Phaser.Math.Clamp(1 - nearestEnemyDist / (profile.key === 'defensive' ? 380 : 280), 0, 1)
+              : 0;
+            quality = Math.max(offensiveGhost, defensiveGhost) + (bot.energy < 18 ? 0.15 : 0);
+            useStored = quality >= 0.46;
           } else if (pu === 'speed') {
-            useStored = (bot.aiPhase === 'attack' && distToHolder > 180 && distToHolder < 900 && bot.energy > profile.attackEnergyGate - 8) ||
-              (isHolder && nearestEnemyDist < 430);
+            const attackSpeed = (bot.aiPhase === 'attack' && holderCircle)
+              ? Phaser.Math.Clamp(1 - Math.abs(distToHolder - 380) / 520, 0, 1)
+              : 0;
+            const escapeSpeed = isHolder ? Phaser.Math.Clamp(1 - nearestEnemyDist / 450, 0, 1) : 0;
+            quality = Math.max(attackSpeed, escapeSpeed);
+            useStored = quality >= 0.48;
           } else if (pu === 'magnet') {
-            useStored = bot.aiPhase === 'farm' && nearbyPellets >= (profile.key === 'farmer' ? 6 : 9);
+            const pelletNeed = (profile.key === 'farmer' ? 6 : 9);
+            quality = bot.aiPhase === 'farm'
+              ? Phaser.Math.Clamp((nearbyPellets - (pelletNeed - 1)) / 8, 0, 1)
+              : 0;
+            useStored = quality >= 0.52;
           } else if (pu === 'turbo') {
-            useStored = bot.energy < (profile.key === 'aggressive' ? 34 : 28) &&
-              ((holderCircle && distToHolder < 700) || (!holderCircle && distToCrown < 500));
+            const lowEnergyNeed = Phaser.Math.Clamp((36 - bot.energy) / 24, 0, 1);
+            const combatNeed = holderCircle ? Phaser.Math.Clamp(1 - distToHolder / 780, 0, 1) : Phaser.Math.Clamp(1 - distToCrown / 620, 0, 1);
+            quality = lowEnergyNeed * 0.7 + combatNeed * 0.7;
+            useStored = quality >= 0.5;
           }
 
           // Le roi sous pression doit survivre : déclenchement défensif explicite.
           if (isHolder && nearestEnemyDist < profile.kingEscapeDist + 40) {
-            if (pu === 'speed' || pu === 'ghost') useStored = true;
-            if (pu === 'turbo' && bot.energy < 55) useStored = true;
+            if (pu === 'speed' || pu === 'ghost') { useStored = true; quality = Math.max(quality, 0.92); }
+            if (pu === 'turbo' && bot.energy < 55) { useStored = true; quality = Math.max(quality, 0.78); }
           }
 
-          if (useStored) {
+          if (useStored && sincePu >= 900) {
+            bot.aiLastPowerUseAt = scene.time.now;
+            rewardBotAction(scene, bot, 'powerup', 0.55 + Phaser.Math.Clamp(quality, 0, 1) * 0.85, 1200);
             activatePowerUp(scene, bot.id, pu);
             bot.storedPowerUp = null;
           }
@@ -2791,6 +3089,14 @@
           bot.boostCommitUntil = 0;
         }
         bot.boostActive = scene.time.now < bot.boostCommitUntil && bot.energy > 2;
+        if (bot.boostActive) {
+          if (!isHolder && bot.aiPhase === 'attack' && holderCircle && distToHolder < 320) {
+            rewardBotAction(scene, bot, 'attack', 0.42, 900);
+          }
+          if (isHolder && nearestEnemyDist < Math.max(profile.kingEscapeDist, 420)) {
+            rewardBotAction(scene, bot, 'escape', 0.48, 900);
+          }
+        }
 
         const bdx = txIA - bot.circle.x;
         const bdy = tyIA - bot.circle.y;
@@ -2858,6 +3164,7 @@
       if (holder === 'player') scene.targetName.setText(playerPseudo);
       else if (holder) { const b=scene.bots.find(x=>x.id===holder); scene.targetName.setText(b?b.name:'?'); }
       else scene.targetName.setText('—');
+      flushBotLearning(scene, false);
     }
 
     // ===================== HELPERS =====================
@@ -2976,15 +3283,21 @@
         b.energy = Math.min(ENERGY_MAX, b.energy + gain);
         b.pelletsCollected++;
         if (b.pelletsCollected % 2 === 0) b.score++;
+        const farmReward = val >= 5 ? 0.3 : (val >= 3 ? 0.18 : 0.09);
+        rewardBotAction(scene, b, 'farm', farmReward, 120);
       }
+    }
+
+    function playPlayerLoseCrownSound() {
+      const loseSound = new Audio(PLAYER_LOSE_CROWN_SOUND_PATH);
+      loseSound.volume = 0.9;
+      loseSound.play().catch(() => {});
     }
 
     function playPlayerKingSound() {
       const kingSound = new Audio(PLAYER_KING_SOUND_PATH);
       kingSound.volume = 0.9;
-      kingSound.play().catch(() => {
-        // Ignore playback errors and continue gameplay.
-      });
+      kingSound.play().catch(() => {});
     }
 
     function playPlayerBoxSound() {
@@ -2992,6 +3305,49 @@
       boxSound.volume = 0.9;
       boxSound.play().catch(() => {
         // Ignore playback errors and continue gameplay.
+      });
+    }
+
+    function playGhostBoostSound() {
+      const ghostSound = new Audio(GHOST_BOOST_SOUND_PATH);
+      ghostSound.volume = 1.0;
+      ghostSound.play().catch(() => {
+        // Ignore playback errors and continue gameplay.
+      });
+    }
+
+    function playTurboBoostSound() {
+      const turboSound = new Audio(TURBO_BOOST_SOUND_PATH);
+      turboSound.volume = 1.0;
+      turboSound.play().catch(() => {
+        // Ignore playback errors and continue gameplay.
+      });
+    }
+
+    function playMagnetBoostSound() {
+      const magnetSound = new Audio(MAGNET_BOOST_SOUND_PATH);
+      magnetSound.volume = 1.0;
+      magnetSound.play().catch(() => {
+        // Ignore playback errors and continue gameplay.
+      });
+    }
+
+    function playRageBoostSound() {
+      const rageSound = new Audio(RAGE_BOOST_SOUND_PATH);
+      rageSound.volume = 1.0;
+      rageSound.play().catch(() => {
+        // Ignore playback errors and continue gameplay.
+      });
+    }
+
+    function playSpeedBoostSound(scene, duration) {
+      if (scene._speedSound) { scene._speedSound.pause(); scene._speedSound = null; }
+      const speedSound = new Audio(SPEED_BOOST_SOUND_PATH);
+      speedSound.volume = 1.0;
+      speedSound.play().catch(() => {});
+      scene._speedSound = speedSound;
+      scene.time.delayedCall(duration, () => {
+        if (scene._speedSound === speedSound) { speedSound.pause(); speedSound.currentTime = 0; scene._speedSound = null; }
       });
     }
 
@@ -3011,6 +3367,10 @@
       scene.crown.setVisible(false);
       scene.crown.body.enable = false;
       if (who === 'player') playPlayerKingSound();
+      if (who !== 'player') {
+        const b = scene.bots.find(x => x.id === who);
+        if (b) rewardBotAction(scene, b, 'crown', 1.2, 0);
+      }
       applyShockwave(scene, who);
     }
 
@@ -3270,6 +3630,7 @@
         const b = scene.bots.find(x => x.id === who);
         if (!b) return;
         b.storedPowerUp = effect;
+        rewardBotAction(scene, b, 'box', 0.9, 700);
       }
     }
 
@@ -3280,6 +3641,14 @@
 
       scene._rouletteRunning = true;
       scene.powerUpBox.setStrokeStyle(3, 0xffffff, 1);
+
+      if (scene._rouletteSound) { scene._rouletteSound.pause(); scene._rouletteSound = null; }
+      try {
+        const snd = new Audio(CRATE_ROULETTE_SOUND_PATH);
+        snd.volume = 0.9;
+        snd.play().catch(() => {});
+        scene._rouletteSound = snd;
+      } catch (_e) { scene._rouletteSound = null; }
 
       const totalTicks = 22;
       let tick = 0;
@@ -3326,6 +3695,7 @@
               scene.powerUpIcon.setText(allIcons[finalEffect]);
               scene.powerUpBox.setStrokeStyle(3, allColors[finalEffect], 1);
               scene._rouletteRunning = false;
+              if (scene._rouletteSound) { scene._rouletteSound.pause(); scene._rouletteSound.currentTime = 0; scene._rouletteSound = null; }
 
               scene.powerUpIcon.setScale(1.6);
               scene.tweens.add({ targets: scene.powerUpIcon, scale: 1, duration: 300, ease: 'Back.easeOut' });
@@ -3391,6 +3761,7 @@
         const b = scene.bots.find(x => x.id === who);
         if (!b) return;
         b.storedPowerUp = effect;
+        rewardBotAction(scene, b, 'box', 1.1, 700);
       }
     }
 
@@ -3399,10 +3770,14 @@
       const icons = { turbo: '⚡', speed: '💨', magnet: '🧲', rage: '💢', ghost: '👻' };
       let label = labels[effect] || effect;
       let duration = 3000;
+      const whoBot = who !== 'player' ? scene.bots.find(x => x.id === who) : null;
 
       switch (effect) {
         case 'turbo':
-          if (who === 'player') { scene.energy = ENERGY_MAX; }
+          if (who === 'player') {
+            scene.energy = ENERGY_MAX;
+            playTurboBoostSound();
+          }
           else { const b = scene.bots.find(x=>x.id===who); if(b) b.energy = ENERGY_MAX; }
           duration = 3000;
           break;
@@ -3410,6 +3785,7 @@
           duration = 5000;
           if (who === 'player') {
             scene._speedBoostUntil = scene.time.now + duration;
+            playSpeedBoostSound(scene, duration);
           } else {
             const b = scene.bots.find(x=>x.id===who);
             if (b) b._speedBoostUntil = scene.time.now + duration;
@@ -3419,6 +3795,7 @@
           duration = 10000;
           if (who === 'player') {
             scene._magnetUntil = scene.time.now + duration;
+            playMagnetBoostSound();
           } else {
             const b = scene.bots.find(x=>x.id===who);
             if (b) b._magnetUntil = scene.time.now + duration;
@@ -3428,6 +3805,7 @@
           duration = 5000;
           if (who === 'player') {
             scene._rageUntil = scene.time.now + duration;
+            playRageBoostSound();
           } else {
             const b = scene.bots.find(x=>x.id===who);
             if (b) b._rageUntil = scene.time.now + duration;
@@ -3437,11 +3815,49 @@
           duration = 5000;
           if (who === 'player') {
             scene._ghostUntil = scene.time.now + duration;
+            playGhostBoostSound();
           } else {
             const b = scene.bots.find(x=>x.id===who);
             if (b) b._ghostUntil = scene.time.now + duration;
           }
           break;
+      }
+
+      if (whoBot) {
+        const holderId = scene.crownHolder;
+        const holderCircle = holderId ? getCircle(scene, holderId) : null;
+        const distToHolder = holderCircle ? Phaser.Math.Distance.Between(whoBot.circle.x, whoBot.circle.y, holderCircle.x, holderCircle.y) : Infinity;
+        const nearestEnemyDist = getNearestEnemyDistance(scene, whoBot.id);
+        if (effect === 'rage' && holderId && holderId !== whoBot.id && distToHolder < 520) {
+          rewardBotAction(scene, whoBot, 'powerup', 1.25, 1000);
+          rewardBotAction(scene, whoBot, 'attack', 0.55, 1200);
+        } else if (effect === 'magnet') {
+          let nearbyPellets = 0;
+          scene.pelletGroup.getChildren().forEach(p => {
+            if (!p.active) return;
+            const d = Phaser.Math.Distance.Between(whoBot.circle.x, whoBot.circle.y, p.x, p.y);
+            if (d < 320) nearbyPellets++;
+          });
+          if (nearbyPellets >= 6) {
+            rewardBotAction(scene, whoBot, 'powerup', 1.15, 1000);
+            rewardBotAction(scene, whoBot, 'farm', 0.35, 800);
+          }
+        } else if (effect === 'speed') {
+          if ((holderId && holderId !== whoBot.id && distToHolder < 850) ||
+              (holderId === whoBot.id && nearestEnemyDist < 430)) {
+            rewardBotAction(scene, whoBot, 'powerup', 1.1, 900);
+          }
+        } else if (effect === 'ghost') {
+          if ((holderId && holderId !== whoBot.id && distToHolder < 520) ||
+              (holderId === whoBot.id && nearestEnemyDist < 360)) {
+            rewardBotAction(scene, whoBot, 'powerup', 1.2, 1000);
+            rewardBotAction(scene, whoBot, holderId === whoBot.id ? 'escape' : 'attack', 0.5, 1000);
+          }
+        } else if (effect === 'turbo') {
+          if (whoBot.energy < 38) {
+            rewardBotAction(scene, whoBot, 'powerup', 0.85, 900);
+          }
+        }
       }
 
       // Enregistrer le power-up actif (visible par tous)
@@ -3585,7 +4001,15 @@
       scene.crownImmunityUntil = scene.time.now + IMMUNITY_DURATION;
       scene.crownHoldStart = scene.time.now;
       scene.legendaryKing = false;
+      if (oldHolderId === 'player') playPlayerLoseCrownSound();
       if (newHolderId === 'player') playPlayerKingSound();
+      if (newHolderId !== 'player') {
+        const winnerBot = scene.bots.find(x => x.id === newHolderId);
+        if (winnerBot) {
+          rewardBotAction(scene, winnerBot, 'crown', 2.2, 0);
+          rewardBotAction(scene, winnerBot, 'attack', 1.1, 0);
+        }
+      }
 
       if (prevCircle) { prevCircle.setScale(1); prevCircle.alpha = 1; }
 
@@ -3770,6 +4194,15 @@
 
     function endGame(scene) {
       scene.timeLeft = 0;
+      if (scene.crownHolder && scene.crownHolder !== 'player') {
+        const winnerBot = scene.bots.find(b => b.id === scene.crownHolder);
+        if (winnerBot) {
+          // Grosse récompense IA: tenir la couronne jusqu'à la fin.
+          rewardBotAction(scene, winnerBot, 'crown', 4.2, 0);
+          rewardBotAction(scene, winnerBot, 'escape', 2.1, 0);
+        }
+      }
+      finalizeBotLearningForMatch(scene);
       scene._matchEndCaptureTs = performance.now();
       scene.time.delayedCall(5400, () => stopFinalReplayCapture(scene));
       if (scene.crownHolder) addScore(scene, scene.crownHolder, 1000);
