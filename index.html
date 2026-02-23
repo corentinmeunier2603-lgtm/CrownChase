@@ -1649,26 +1649,60 @@
 
       // --- HUD (adapté mobile/desktop) ---
       const mob = scene.isTouchDevice;
-      const barX = mob ? 56 : 36;
-      const barBottom = GAME_HEIGHT - (mob ? 84 : 70);
-      const barTop = barBottom - GAME_HEIGHT * (mob ? 0.28 : 0.5);
-      const barHeight = barBottom - barTop;
-      const barWidth = mob ? 16 : 22;
+      scene._mobHorizontalBar = mob;
 
-      scene.energyBarBg = this.add.rectangle(barX, barTop+barHeight/2, barWidth, barHeight, 0x111827)
-        .setOrigin(0.5).setScrollFactor(0).setDepth(800);
-      scene.energyBarBorder = this.add.rectangle(barX, barTop+barHeight/2, barWidth, barHeight)
-        .setOrigin(0.5).setStrokeStyle(2, 0x22c55e, 0.8).setScrollFactor(0).setDepth(800);
-      scene.energyBarFill = this.add.rectangle(barX, barBottom-2, barWidth-4, 0, 0x22c55e)
-        .setOrigin(0.5, 1).setScrollFactor(0).setDepth(801);
-      scene.energyBolt = this.add.text(barX, barTop - (mob ? 16 : 28), '⚡', {
-        fontSize: mob ? '28px' : '40px', fontFamily: 'Segoe UI Emoji'
-      }).setOrigin(0.5).setScrollFactor(0).setDepth(800);
-      scene.energyPercent = this.add.text(barX, barBottom + (mob ? 16 : 28), '0', {
-        fontSize: mob ? '28px' : '42px', fontStyle: 'bold', color: '#ff4b4b', fontFamily: 'Arial', resolution: 2
-      }).setOrigin(0.5).setScrollFactor(0).setDepth(800);
-      scene._barTop = barTop; scene._barBottom = barBottom;
-      scene._barHeight = barHeight;
+      if (mob) {
+        const hBarY = 30;
+        const hBarLeft = 120;
+        const hBarRight = GAME_WIDTH - 96;
+        const hBarWidth = hBarRight - hBarLeft;
+        const hBarCenterX = (hBarLeft + hBarRight) / 2;
+        const hBarThick = 20;
+
+        scene.energyBarBg = this.add.rectangle(hBarCenterX, hBarY, hBarWidth, hBarThick, 0x111827)
+          .setOrigin(0.5).setScrollFactor(0).setDepth(800);
+        scene.energyBarBorder = this.add.rectangle(hBarCenterX, hBarY, hBarWidth, hBarThick)
+          .setOrigin(0.5).setStrokeStyle(2, 0x22c55e, 0.8).setScrollFactor(0).setDepth(800);
+        scene.energyBarFill = this.add.rectangle(hBarLeft + 2, hBarY, 0, hBarThick - 4, 0x22c55e)
+          .setOrigin(0, 0.5).setScrollFactor(0).setDepth(801);
+        scene.energyBolt = this.add.text(hBarLeft - 22, hBarY, '⚡', {
+          fontSize: '34px', fontFamily: 'Segoe UI Emoji'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(800);
+        scene.energyPercent = this.add.text(hBarRight + 30, hBarY, '0', {
+          fontSize: '32px', fontStyle: 'bold', color: '#ff4b4b', fontFamily: 'Arial', resolution: 2
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(800);
+
+        scene._hBarLeft = hBarLeft;
+        scene._hBarRight = hBarRight;
+        scene._hBarWidth = hBarWidth;
+        scene._hBarY = hBarY;
+        scene._hBarThick = hBarThick;
+        scene._hBarCenterX = hBarCenterX;
+        scene._hBarBoltX = hBarLeft - 22;
+        scene._hBarPctX = hBarRight + 30;
+        scene._barTop = 0; scene._barBottom = 0; scene._barHeight = 0;
+      } else {
+        const barX = 36;
+        const barBottom = GAME_HEIGHT - 70;
+        const barTop = barBottom - GAME_HEIGHT * 0.5;
+        const barHeight = barBottom - barTop;
+        const barWidth = 22;
+
+        scene.energyBarBg = this.add.rectangle(barX, barTop+barHeight/2, barWidth, barHeight, 0x111827)
+          .setOrigin(0.5).setScrollFactor(0).setDepth(800);
+        scene.energyBarBorder = this.add.rectangle(barX, barTop+barHeight/2, barWidth, barHeight)
+          .setOrigin(0.5).setStrokeStyle(2, 0x22c55e, 0.8).setScrollFactor(0).setDepth(800);
+        scene.energyBarFill = this.add.rectangle(barX, barBottom-2, barWidth-4, 0, 0x22c55e)
+          .setOrigin(0.5, 1).setScrollFactor(0).setDepth(801);
+        scene.energyBolt = this.add.text(barX, barTop - 28, '⚡', {
+          fontSize: '40px', fontFamily: 'Segoe UI Emoji'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(800);
+        scene.energyPercent = this.add.text(barX, barBottom + 28, '0', {
+          fontSize: '42px', fontStyle: 'bold', color: '#ff4b4b', fontFamily: 'Arial', resolution: 2
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(800);
+        scene._barTop = barTop; scene._barBottom = barBottom;
+        scene._barHeight = barHeight;
+      }
 
       // --- HUD Power-up (mobile: above joystick on right side; desktop: bottom-right) ---
       const puSize = mob ? 48 : 64;
@@ -2054,10 +2088,15 @@
 
       // --- Jauge ---
       const ratio = Phaser.Math.Clamp(scene.energy / ENERGY_MAX, 0, 1);
-      const fillH = (scene._barHeight - 4) * ratio;
-      scene.energyBarFill.y = scene._barBottom - 2;
-      scene.energyBarFill.height = fillH;
-      scene.energyBarFill.setOrigin(0.5, 1);
+      if (scene._mobHorizontalBar) {
+        const fillW = (scene._hBarWidth - 4) * ratio;
+        scene.energyBarFill.width = fillW;
+      } else {
+        const fillH = (scene._barHeight - 4) * ratio;
+        scene.energyBarFill.y = scene._barBottom - 2;
+        scene.energyBarFill.height = fillH;
+        scene.energyBarFill.setOrigin(0.5, 1);
+      }
       let cr, cg, cb;
       if (ratio < 0.5) { const t=ratio/0.5; cr=255; cg=Math.floor(75+180*t); cb=Math.floor(75*(1-t)); }
       else { const t=(ratio-0.5)/0.5; cr=Math.floor(255*(1-t)); cg=255; cb=Math.floor(50*t); }
@@ -2292,25 +2331,33 @@
       const z = camMain.zoom||1, invZ = 1/z;
       const cw = GAME_WIDTH/2, ch = GAME_HEIGHT/2;
       const _mob = scene.isTouchDevice;
-      const _barX = _mob ? 56 : 36;
+      const _barX = _mob ? 0 : 36;
       const _timerX = _mob ? 60 : 90;
       const _timerY = _mob ? 34 : 50;
       const _legY = _mob ? 64 : 95;
       const _kingX = scene._kingX || (GAME_WIDTH - (_mob ? 10 : 20));
       const _kingLabelY = _mob ? 4 : 14;
       const _kingNameY = _mob ? 24 : 52;
-      const _boltOff = _mob ? 16 : 28;
-      const _pctOff = _mob ? 16 : 28;
+      const _boltOff = 28;
+      const _pctOff = 28;
       function fixHud(el,sx,sy) { el.x=(sx-cw)*invZ+cw; el.y=(sy-ch)*invZ+ch; el.setScale(invZ); }
       fixHud(scene.timerText, _timerX, _timerY);
       fixHud(scene.legendaryHud, GAME_WIDTH / 2, _legY);
       fixHud(scene.targetLabel, _kingX, _kingLabelY);
       fixHud(scene.targetName, _kingX, _kingNameY);
-      fixHud(scene.energyBarBg, _barX, scene._barTop+scene._barHeight/2);
-      fixHud(scene.energyBarBorder, _barX, scene._barTop+scene._barHeight/2);
-      fixHud(scene.energyBarFill, _barX, scene._barBottom-2);
-      fixHud(scene.energyBolt, _barX, scene._barTop-_boltOff);
-      fixHud(scene.energyPercent, _barX + (_mob ? 0 : 12), scene._barBottom+_pctOff);
+      if (_mob) {
+        fixHud(scene.energyBarBg, scene._hBarCenterX, scene._hBarY);
+        fixHud(scene.energyBarBorder, scene._hBarCenterX, scene._hBarY);
+        fixHud(scene.energyBarFill, scene._hBarLeft + 2, scene._hBarY);
+        fixHud(scene.energyBolt, scene._hBarBoltX, scene._hBarY);
+        fixHud(scene.energyPercent, scene._hBarPctX, scene._hBarY);
+      } else {
+        fixHud(scene.energyBarBg, _barX, scene._barTop+scene._barHeight/2);
+        fixHud(scene.energyBarBorder, _barX, scene._barTop+scene._barHeight/2);
+        fixHud(scene.energyBarFill, _barX, scene._barBottom-2);
+        fixHud(scene.energyBolt, _barX, scene._barTop-_boltOff);
+        fixHud(scene.energyPercent, _barX + 12, scene._barBottom+_pctOff);
+      }
       fixHud(scene.powerUpBox, scene._puX, scene._puY);
       fixHud(scene.powerUpIcon, scene._puX, scene._puY);
       if (scene.boostBtn) fixHud(scene.boostBtn, scene._boostHudX, scene._boostHudY);
