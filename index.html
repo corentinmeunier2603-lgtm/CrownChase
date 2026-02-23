@@ -442,10 +442,39 @@
       .step-card { width: min(20vw, 110px); padding: 8px 4px 6px; }
       .step-icon { font-size: min(3.5vw, 18px); }
     }
+    #mobile-block-screen {
+      position: fixed; inset: 0; z-index: 9999;
+      display: none; flex-direction: column; align-items: center; justify-content: center;
+      background: radial-gradient(circle at top, #0b1b3a 0%, #020814 60%, #000000 100%);
+      padding: 32px; text-align: center;
+    }
+    #mobile-block-screen .mb-icon { font-size: 64px; margin-bottom: 24px; }
+    #mobile-block-screen .mb-title {
+      font-size: 28px; font-weight: bold; color: #ffd700;
+      text-shadow: 0 0 20px rgba(255,215,0,0.4);
+      margin-bottom: 16px;
+    }
+    #mobile-block-screen .mb-msg {
+      font-size: 16px; color: #8899bb; line-height: 1.6; max-width: 380px;
+    }
+    #mobile-block-screen .mb-url {
+      margin-top: 28px; padding: 12px 24px; border-radius: 12px;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+      color: #60a5fa; font-size: 15px; font-weight: bold; letter-spacing: 0.5px;
+      user-select: all; -webkit-user-select: all;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.min.js"></script>
 </head>
 <body>
+  <!-- Blocage mobile -->
+  <div id="mobile-block-screen">
+    <div class="mb-icon">🖥️</div>
+    <div class="mb-title">♕ Crown Chase</div>
+    <div class="mb-msg" id="mb-msg-text">Ce jeu est uniquement disponible sur PC pour le moment.<br><br>Rendez-vous sur un ordinateur pour jouer !</div>
+    <div class="mb-url">crownchase.io</div>
+  </div>
+
   <!-- Écran d'accueil -->
   <div id="menu-screen">
     <div id="infos-btn" onclick="toggleInfosPanel()">
@@ -645,7 +674,8 @@
       puSpeed:         { fr: 'Vitesse x3 pendant quelques sec.', en: 'Speed x3 for a few seconds', es: 'Velocidad x3 durante unos seg.', zh: '速度x3持续几秒', it: 'Velocità x3 per qualche sec.' },
       puMagnet:        { fr: 'Attire les billes autour de toi', en: 'Attracts pellets around you', es: 'Atrae las bolas a tu alrededor', zh: '吸引周围的能量球', it: 'Attira le sfere intorno a te' },
       puRage:          { fr: 'Brise le bouclier du roi au contact', en: 'Breaks the king\'s shield on contact', es: 'Rompe el escudo del rey al contacto', zh: '接触即破国王护盾', it: 'Rompe lo scudo del re al contatto' },
-      puGhost:         { fr: 'Invisible + traverse le bouclier', en: 'Invisible + pass through shield', es: 'Invisible + atraviesa el escudo', zh: '隐身+穿透护盾', it: 'Invisibile + attraversa lo scudo' }
+      puGhost:         { fr: 'Invisible + traverse le bouclier', en: 'Invisible + pass through shield', es: 'Invisible + atraviesa el escudo', zh: '隐身+穿透护盾', it: 'Invisibile + attraversa lo scudo' },
+      mobileBlock:     { fr: 'Ce jeu est uniquement disponible sur PC pour le moment.<br><br>Rendez-vous sur un ordinateur pour jouer !', en: 'This game is only available on PC for now.<br><br>Head to a computer to play!', es: 'Este juego solo está disponible en PC por el momento.<br><br>¡Ve a un ordenador para jugar!', zh: '该游戏目前仅在PC上可用。<br><br>请使用电脑进行游戏！', it: 'Questo gioco è disponibile solo su PC per il momento.<br><br>Vai su un computer per giocare!' }
     };
 
     function t(key) { return (TR[key] && TR[key][currentLang]) || (TR[key] && TR[key]['fr']) || key; }
@@ -1022,6 +1052,14 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+      if (isTouchControlMode()) {
+        document.getElementById('mobile-block-screen').style.display = 'flex';
+        document.getElementById('menu-screen').style.display = 'none';
+        const mbMsg = document.getElementById('mb-msg-text');
+        if (mbMsg) mbMsg.innerHTML = t('mobileBlock');
+        return;
+      }
+
       const pseudoInput = document.getElementById('guest-pseudo');
       const playBtn = document.getElementById('guest-play-btn');
       const competEmailInput = document.getElementById('compet-email');
