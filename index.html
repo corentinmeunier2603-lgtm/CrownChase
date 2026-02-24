@@ -3308,47 +3308,60 @@
       });
     }
 
-    function playGhostBoostSound() {
-      const ghostSound = new Audio(GHOST_BOOST_SOUND_PATH);
-      ghostSound.volume = 1.0;
-      ghostSound.play().catch(() => {
-        // Ignore playback errors and continue gameplay.
-      });
+    function stopTimedPowerUpSound(scene, soundKey) {
+      if (!scene || !scene._timedPowerUpSounds) return;
+      const entry = scene._timedPowerUpSounds[soundKey];
+      if (!entry) return;
+
+      if (entry.timer && !entry.timer.hasDispatched) entry.timer.remove(false);
+      if (entry.sound) {
+        entry.sound.pause();
+        entry.sound.currentTime = 0;
+      }
+      delete scene._timedPowerUpSounds[soundKey];
     }
 
-    function playTurboBoostSound() {
-      const turboSound = new Audio(TURBO_BOOST_SOUND_PATH);
-      turboSound.volume = 1.0;
-      turboSound.play().catch(() => {
+    function playTimedPowerUpSound(scene, soundKey, audioPath, duration) {
+      if (!scene) return;
+      if (!scene._timedPowerUpSounds) scene._timedPowerUpSounds = {};
+
+      stopTimedPowerUpSound(scene, soundKey);
+
+      const sound = new Audio(audioPath);
+      sound.volume = 1.0;
+      sound.play().catch(() => {
         // Ignore playback errors and continue gameplay.
       });
+
+      const timer = scene.time.delayedCall(duration, () => {
+        const entry = scene._timedPowerUpSounds && scene._timedPowerUpSounds[soundKey];
+        if (!entry || entry.sound !== sound) return;
+        sound.pause();
+        sound.currentTime = 0;
+        delete scene._timedPowerUpSounds[soundKey];
+      });
+
+      scene._timedPowerUpSounds[soundKey] = { sound, timer };
     }
 
-    function playMagnetBoostSound() {
-      const magnetSound = new Audio(MAGNET_BOOST_SOUND_PATH);
-      magnetSound.volume = 1.0;
-      magnetSound.play().catch(() => {
-        // Ignore playback errors and continue gameplay.
-      });
+    function playGhostBoostSound(scene, duration) {
+      playTimedPowerUpSound(scene, 'ghost', GHOST_BOOST_SOUND_PATH, duration);
     }
 
-    function playRageBoostSound() {
-      const rageSound = new Audio(RAGE_BOOST_SOUND_PATH);
-      rageSound.volume = 1.0;
-      rageSound.play().catch(() => {
-        // Ignore playback errors and continue gameplay.
-      });
+    function playTurboBoostSound(scene, duration) {
+      playTimedPowerUpSound(scene, 'turbo', TURBO_BOOST_SOUND_PATH, duration);
+    }
+
+    function playMagnetBoostSound(scene, duration) {
+      playTimedPowerUpSound(scene, 'magnet', MAGNET_BOOST_SOUND_PATH, duration);
+    }
+
+    function playRageBoostSound(scene, duration) {
+      playTimedPowerUpSound(scene, 'rage', RAGE_BOOST_SOUND_PATH, duration);
     }
 
     function playSpeedBoostSound(scene, duration) {
-      if (scene._speedSound) { scene._speedSound.pause(); scene._speedSound = null; }
-      const speedSound = new Audio(SPEED_BOOST_SOUND_PATH);
-      speedSound.volume = 1.0;
-      speedSound.play().catch(() => {});
-      scene._speedSound = speedSound;
-      scene.time.delayedCall(duration, () => {
-        if (scene._speedSound === speedSound) { speedSound.pause(); speedSound.currentTime = 0; scene._speedSound = null; }
-      });
+      playTimedPowerUpSound(scene, 'speed', SPEED_BOOST_SOUND_PATH, duration);
     }
 
     function pickUpCrown(scene, who) {
@@ -3774,12 +3787,12 @@
 
       switch (effect) {
         case 'turbo':
+          duration = 3000;
           if (who === 'player') {
             scene.energy = ENERGY_MAX;
-            playTurboBoostSound();
+            playTurboBoostSound(scene, duration);
           }
           else { const b = scene.bots.find(x=>x.id===who); if(b) b.energy = ENERGY_MAX; }
-          duration = 3000;
           break;
         case 'speed':
           duration = 5000;
@@ -3795,7 +3808,7 @@
           duration = 10000;
           if (who === 'player') {
             scene._magnetUntil = scene.time.now + duration;
-            playMagnetBoostSound();
+            playMagnetBoostSound(scene, duration);
           } else {
             const b = scene.bots.find(x=>x.id===who);
             if (b) b._magnetUntil = scene.time.now + duration;
@@ -3805,7 +3818,7 @@
           duration = 5000;
           if (who === 'player') {
             scene._rageUntil = scene.time.now + duration;
-            playRageBoostSound();
+            playRageBoostSound(scene, duration);
           } else {
             const b = scene.bots.find(x=>x.id===who);
             if (b) b._rageUntil = scene.time.now + duration;
@@ -3815,7 +3828,7 @@
           duration = 5000;
           if (who === 'player') {
             scene._ghostUntil = scene.time.now + duration;
-            playGhostBoostSound();
+            playGhostBoostSound(scene, duration);
           } else {
             const b = scene.bots.find(x=>x.id===who);
             if (b) b._ghostUntil = scene.time.now + duration;
